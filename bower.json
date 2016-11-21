@@ -17,15 +17,18 @@
     "package.json"
   ],
   "dependencies": {
-    "purescript-console":    "latest",
-    "purescript-st":         "latest",
-    "purescript-dom":        "latest",
-    "purescript-foreign":    "latest",
-    "purescript-react-dom":  "latest",
-    "purescript-react":      "latest",
-    "purescript-strings":    "latest",
+    "purescript-console": "latest",
+    "purescript-st": "latest",
+    "purescript-dom": "latest",
+    "purescript-foreign": "latest",
+    "purescript-react-dom": "latest",
+    "purescript-react": "latest",
+    "purescript-strings": "latest",
     "purescript-validation": "latest",
-    "purescript-affjax":     "latest",
-    "purescript-transformers":     "latest"
+    "purescript-affjax": "latest",
+    "purescript-transformers": "latest"
+  },
+  "devDependencies": {
+    "purescript-psci-support": "^2.0.0"
   }
 }

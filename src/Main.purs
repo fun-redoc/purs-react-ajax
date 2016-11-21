@@ -12,8 +12,6 @@ import Partial.Unsafe (unsafePartial)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Except (runExcept)
--- import Data.AddressBook (Address(..), Person(..), PhoneNumber(..), examplePerson)
--- import Data.AddressBook.Validation (Errors, validatePerson')
 import Data.Array  ((..), (:), length, modifyAt, zipWith) as Arr
 import Data.List.Types (toList)
 import Data.Either (Either(..), either)
@@ -90,11 +88,17 @@ mapForignEvent fe =
   let eitherEventValueForign::Either MultipleErrors String
       eitherEventValueForign = runExcept fe
       eitherEventValue::Either Errors String
-      -- eitherEventValue = either (toList >>> (foldl (\a v->(show v) Arr.: a) [])) (\x->x) eitherEventValueForign
       eitherEventValue = case eitherEventValueForign of
          Left ls -> Left $ (toList >>> (foldl (\a v->(show v) Arr.: a) [])) ls
          Right s -> Right s 
   in eitherEventValue
+  
+updateEquation::(String->Equation)->Event->Either Errors Equation
+updateEquation update e = 
+  let eitherEventValue = mapForignEvent (valueOf e)
+      eitherNewEquation::Either Errors Equation
+      eitherNewEquation = update <$> eitherEventValue
+  in  eitherNewEquation
   
 updateAppState
   :: forall props eff
@@ -105,30 +109,15 @@ updateAppState
          , state :: ReactState ReadWrite
          | eff
          ) Unit
-updateAppState ctx update e = do
---  for_ (valueOf e) \s -> do
---   let eitherEventValueForign::Either MultipleErrors String
---       eitherEventValueForign = runExcept (valueOf e)
---       eitherEventValue::Either Errors String
---       eitherEventValue = either (toList >>> (foldl (\a v->(show v) Arr.: a) [])) (\x->x) eitherEventValueForign
---       eitherNewEquation = update <$> eitherEventValue
-  let eitherEventValue::Either Errors String
-      eitherEventValue = mapForignEvent (valueOf e)
-      eitherNewEquation::Either Errors Equation
-      eitherNewEquation = update <$> eitherEventValue
+updateAppState ctx update e = void do
   AppState {equation:oldEquation, errors} <- readState ctx
   either 
      (\lv -> writeState ctx (AppState { equation: oldEquation, errors: lv }))
      (\ne -> writeState ctx (AppState { equation: ne, errors: [] }))
-     eitherNewEquation 
-     
---   case eitherNewEquation >>= validateEquation' of
---     Left errors -> writeState ctx (AppState { equation: ctx.equation, errors: errors })
---     Right newEquation -> writeState ctx (AppState { equation: newEquation, errors: [] })
+     (updateEquation update e) 
 
 equationReactClass :: forall props. ReactClass props
 equationReactClass = createClass $ spec initialState \ctx -> do
-  -- AppState { person: Person person@{ homeAddress: Address address }, errors } <- readState ctx
   AppState { equation: Equation equat, errors } <- readState ctx
 
   let renderValidationError err = D.li' [ D.text err ]
