@@ -97,9 +97,26 @@ updateEquation::(String->Equation)->Event->Either Errors Equation
 updateEquation update e = 
   let eitherEventValue = mapForignEvent (valueOf e)
       eitherNewEquation::Either Errors Equation
-      eitherNewEquation = update <$> eitherEventValue
+      eitherNewEquation = calcEitherEquation $ update <$> eitherEventValue
   in  eitherNewEquation
   
+calcEitherEquation::Either Errors Equation->Either Errors Equation
+calcEitherEquation leftVal@Left _ = leftVal
+calcEitherEquation rightVal@(Right (Equation {o1, op, o2, res})) = 
+  let calc::String->String->String->Either Errors Int 
+      calc o1' op' o2' = 
+        let maybeO1 = fromString o1'
+            maybyO2 = fromString o2'
+            maybeOp = fromString op
+            mayBeResult = eval <$> maybeOp <*> maybeO1 <*> maybeO2
+         in case mayBeResult of
+              Nothing -> Left "there is an error in the input"
+              Just i -> Right i
+      result::Either Errors Int -> Either Errors Equation
+      result (Left errors) = Left errors
+      result (Right i)     = Right $ equation o1 op o2 $ show i
+   in result $ calc o1 op o2
+
 updateAppState
   :: forall props eff
    . ReactThis props AppState
@@ -114,7 +131,7 @@ updateAppState ctx update e = void do
   either 
      (\lv -> writeState ctx (AppState { equation: oldEquation, errors: lv }))
      (\ne -> writeState ctx (AppState { equation: ne, errors: [] }))
-     (updateEquation update e) 
+     (calcEitherEquation $ updateEquation update e) 
 
 equationReactClass :: forall props. ReactClass props
 equationReactClass = createClass $ spec initialState \ctx -> do
@@ -150,7 +167,7 @@ equationReactClass = createClass $ spec initialState \ctx -> do
       updateOperandTwo s = Equation $ equat { o2 = s, res = equat.o1 <> equat.op <> s }
       updateOperator   s = Equation $ equat { op = s , res = equat.o1 <> s <> equat.o2 }
       updateResult     s = Equation $ equat { res = s <> equat.o1 <> equat.op <> equat.o2 }
-      calc e = e.o1 <> e.op <> e.o2
+      calc e = e.res -- e.o1 <> e.op <> e.o2
 
   pure $
     D.div [ P.className "container" ]
