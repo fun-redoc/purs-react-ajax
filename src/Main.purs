@@ -111,12 +111,12 @@ mapForignEvent fe =
          Right s -> Right s 
   in eitherEventValue
   
-updateEquation::(String->Equation)->Event->Either Errors Equation
-updateEquation update e = 
-  let eitherEventValue = mapForignEvent (valueOf e)
-      eitherNewEquation::Either Errors Equation
-      eitherNewEquation = calcEitherEquation $ update <$> eitherEventValue
-  in  eitherNewEquation
+-- updateEquation::(String->Equation)->Event->Either Errors Equation
+-- updateEquation update e = 
+--   let eitherEventValue = mapForignEvent (valueOf e)
+--       eitherNewEquation::Either Errors Equation
+--       eitherNewEquation = calcEitherEquation $ update <$> eitherEventValue
+--   in  eitherNewEquation
   
 calcEitherEquation::Either Errors Equation->Either Errors Equation
 calcEitherEquation leftVal@Left _ = leftVal
@@ -150,10 +150,10 @@ updateAppState
          ) Unit
 updateAppState ctx update e = void do
   AppState {equation:oldEquation, errors} <- readState ctx
-  either 
-     (\lv -> writeState ctx (AppState { equation: oldEquation, errors: lv }))
-     (\ne -> writeState ctx (AppState { equation: ne, errors: [] }))
-     (calcEitherEquation $ updateEquation update e) 
+  let eitherNewEquationOrErrors = update <$> mapForignEvent (valueOf e)
+  let failedUpdate = (\lv -> writeState ctx (AppState { equation: oldEquation, errors: lv }))
+  let successUpdate = (\ne -> writeState ctx (AppState { equation: ne, errors: [] }))
+  either failedUpdate successUpdate (calcEitherEquation eitherNewEquationOrErrors) 
 
 equationReactClass :: forall props. ReactClass props
 equationReactClass = createClass $ spec initialState \ctx -> do

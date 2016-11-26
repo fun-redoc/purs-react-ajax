@@ -36617,7 +36617,7 @@ var mapForignEvent = function (fe) {
         if (eitherEventValueForign instanceof Data_Either.Right) {
             return new Data_Either.Right(eitherEventValueForign.value0);
         };
-        throw new Error("Failed pattern match at Main line 102, column 26 - line 104, column 28: " + [ eitherEventValueForign.constructor.name ]);
+        throw new Error("Failed pattern match at Main line 109, column 26 - line 111, column 28: " + [ eitherEventValueForign.constructor.name ]);
     })();
     return eitherEventValue;
 };
@@ -36667,7 +36667,7 @@ var calcEitherEquation = function (v) {
             if (v1 instanceof Data_Either.Right) {
                 return Data_Either.Right.create(equation(v.value0.o1)(v.value0.op)(v.value0.o2)(Data_Show.show(Data_Show.showInt)(v1.value0)));
             };
-            throw new Error("Failed pattern match at Main line 126, column 7 - line 126, column 38: " + [ v1.constructor.name ]);
+            throw new Error("Failed pattern match at Main line 133, column 7 - line 133, column 38: " + [ v1.constructor.name ]);
         };
         var calc = function (o1$prime) {
             return function (op$prime) {
@@ -36681,37 +36681,33 @@ var calcEitherEquation = function (v) {
                     if (mayBeResult instanceof Data_Maybe.Just) {
                         return new Data_Either.Right(mayBeResult.value0);
                     };
-                    throw new Error("Failed pattern match at Main line 122, column 13 - line 124, column 32: " + [ mayBeResult.constructor.name ]);
+                    throw new Error("Failed pattern match at Main line 129, column 13 - line 131, column 32: " + [ mayBeResult.constructor.name ]);
                 };
             };
         };
         return result(calc(v.value0.o1)(v.value0.op)(v.value0.o2));
     };
-    throw new Error("Failed pattern match at Main line 115, column 1 - line 115, column 44: " + [ v.constructor.name ]);
-};
-var updateEquation = function (update) {
-    return function (e) {
-        var eitherEventValue = mapForignEvent(valueOf(e));
-        var eitherNewEquation = calcEitherEquation(Data_Functor.map(Data_Either.functorEither)(update)(eitherEventValue));
-        return eitherNewEquation;
-    };
+    throw new Error("Failed pattern match at Main line 122, column 1 - line 122, column 44: " + [ v.constructor.name ]);
 };
 var updateAppState = function (ctx) {
     return function (update) {
         return function (e) {
             return Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
                 var v = React.readState(ctx)();
-                return Data_Either.either(function (lv) {
+                var eitherNewEquationOrErrors = Data_Functor.map(Data_Either.functorEither)(update)(mapForignEvent(valueOf(e)));
+                var failedUpdate = function (lv) {
                     return React.writeState(ctx)({
                         equation: v.equation, 
                         errors: lv
                     });
-                })(function (ne) {
+                };
+                var successUpdate = function (ne) {
                     return React.writeState(ctx)({
                         equation: ne, 
                         errors: [  ]
                     });
-                })(calcEitherEquation(updateEquation(update)(e)))();
+                };
+                return Data_Either.either(failedUpdate)(successUpdate)(calcEitherEquation(eitherNewEquationOrErrors))();
             });
         };
     };
@@ -36817,7 +36813,6 @@ module.exports = {
     maybeOp: maybeOp, 
     nonEmpty: nonEmpty, 
     updateAppState: updateAppState, 
-    updateEquation: updateEquation, 
     validateEquation: validateEquation, 
     "validateEquation'": validateEquation$prime, 
     valueOf: valueOf
