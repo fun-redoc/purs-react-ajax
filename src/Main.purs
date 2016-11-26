@@ -5,9 +5,15 @@ import Prelude
 import Data.String (length)
 import Data.String.Regex (Regex, test, regex)
 import Data.String.Regex.Flags (noFlags)
+import Data.Int (fromString)
 import Data.Traversable (traverse)
 import Data.Validation.Semigroup (V, unV, invalid)
 import Partial.Unsafe (unsafePartial)
+
+
+import Control.Monad.Aff (launchAff)
+import Data.HTTP.Method (Method(..))
+import Network.HTTP.Affjax (affjax, defaultRequest)
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
@@ -18,7 +24,7 @@ import Data.Either (Either(..), either)
 import Data.Foldable (for_, foldl)
 import Data.Foreign (F, MultipleErrors, readString, toForeign)
 import Data.Foreign.Index (prop)
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.Nullable (toMaybe)
 import DOM (DOM())
 import DOM.HTML (window)
@@ -41,6 +47,18 @@ newtype  Equation =  Equation {
 }
 equation::String->String->String->String->Equation
 equation o1 op o2 res = Equation { o1:o1, op:op, o2:o2, res:res }
+
+maybeOp::String -> Maybe (Int->Int->Int)
+maybeOp "+" = Just (\o1 o2 -> o1 + o2)
+maybeOp "*" = Just (\o1 o2 -> o1 * o2)
+maybeOp   _ = Nothing
+
+-- maybeOp'::String -> Maybe (Int->Int->Int)
+-- maybeOp' "+" =
+-- launchAff $ do
+--   res <- affjax $ defaultRequest { url = "http://localhost:8080/calc/3/add/4", method = Left GET }
+--   liftEff $ log $ "GET /api response: " <> res.response
+-- maybeOp'   _ = Nothing
 
 type Errors = Array String
 
@@ -106,17 +124,21 @@ calcEitherEquation rightVal@(Right (Equation {o1, op, o2, res})) =
   let calc::String->String->String->Either Errors Int 
       calc o1' op' o2' = 
         let maybeO1 = fromString o1'
-            maybyO2 = fromString o2'
-            maybeOp = fromString op
-            mayBeResult = eval <$> maybeOp <*> maybeO1 <*> maybeO2
+            maybeO2 = fromString o2'
+            mayBeResult = maybeOp op <*> maybeO1 <*> maybeO2
          in case mayBeResult of
-              Nothing -> Left "there is an error in the input"
+              Nothing -> Left ["there is an error in the input"]
               Just i -> Right i
       result::Either Errors Int -> Either Errors Equation
-      result (Left errors) = Left errors
+      result (Left errors) = rightVal
       result (Right i)     = Right $ equation o1 op o2 $ show i
    in result $ calc o1 op o2
 
+-- ajaxRequest cb a b = launchAff $ do
+--   let url = "http://localhost:8080/calc/" <> show a <> "/add/" <> show b
+--   res <- affjax $ defaultRequest { url = url, method = Left GET }
+--   liftEff $ cb res.response
+  
 updateAppState
   :: forall props eff
    . ReactThis props AppState
