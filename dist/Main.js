@@ -24632,16 +24632,16 @@ var Data_Tuple = require("../Data.Tuple");
 var Data_Unfoldable = require("../Data.Unfoldable");
 var Partial_Unsafe = require("../Partial.Unsafe");
 var Data_Function = require("../Data.Function");
+var Data_Ord = require("../Data.Ord");
+var Data_Semiring = require("../Data.Semiring");
+var Data_Boolean = require("../Data.Boolean");
 var Data_Ordering = require("../Data.Ordering");
 var Data_Ring = require("../Data.Ring");
-var Data_Ord = require("../Data.Ord");
 var Data_Eq = require("../Data.Eq");
 var Data_HeytingAlgebra = require("../Data.HeytingAlgebra");
 var Control_Apply = require("../Control.Apply");
 var Data_Functor = require("../Data.Functor");
 var Control_Applicative = require("../Control.Applicative");
-var Data_Boolean = require("../Data.Boolean");
-var Data_Semiring = require("../Data.Semiring");
 var Control_Semigroupoid = require("../Control.Semigroupoid");
 var Control_Bind = require("../Control.Bind");
 var Data_Semigroup = require("../Data.Semigroup");
@@ -24661,8 +24661,8 @@ var unzip = $foreign["uncons'"](function (v) {
     return new Data_Tuple.Tuple([  ], [  ]);
 })(function (v) {
     return function (ts) {
-        var $43 = unzip(ts);
-        return new Data_Tuple.Tuple($foreign.cons(v.value0)($43.value0), $foreign.cons(v.value1)($43.value1));
+        var $44 = unzip(ts);
+        return new Data_Tuple.Tuple($foreign.cons(v.value0)($44.value0), $foreign.cons(v.value1)($44.value1));
     };
 });
 var unsafeIndex = function (dictPartial) {
@@ -24677,59 +24677,42 @@ var uncons = $foreign["uncons'"](Data_Function["const"](Data_Maybe.Nothing.value
     };
 });
 var toUnfoldable = function (dictUnfoldable) {
-    return Data_Unfoldable.unfoldr(dictUnfoldable)($foreign["uncons'"](Data_Function["const"](Data_Maybe.Nothing.value))(function (h) {
-        return function (t) {
-            return new Data_Maybe.Just(new Data_Tuple.Tuple(h, t));
+    return function (xs) {
+        var len = $foreign.length(xs);
+        var f = function (i) {
+            if (i < len) {
+                return new Data_Maybe.Just(new Data_Tuple.Tuple(Partial_Unsafe.unsafePartial(function (dictPartial) {
+                    return unsafeIndex(dictPartial)(xs)(i);
+                }), i + 1 | 0));
+            };
+            if (Data_Boolean.otherwise) {
+                return Data_Maybe.Nothing.value;
+            };
+            throw new Error("Failed pattern match at Data.Array line 133, column 1 - line 138, column 26: " + [ i.constructor.name ]);
         };
-    }));
+        return Data_Unfoldable.unfoldr(dictUnfoldable)(f)(0);
+    };
 };
 var tail = $foreign["uncons'"](Data_Function["const"](Data_Maybe.Nothing.value))(function (v) {
     return function (xs) {
         return new Data_Maybe.Just(xs);
     };
 });
-var span = function (p) {
-    var go = function (__copy_acc) {
-        return function (__copy_xs) {
-            var acc = __copy_acc;
-            var xs = __copy_xs;
-            tco: while (true) {
-                var $49 = uncons(xs);
-                if ($49 instanceof Data_Maybe.Just && p($49.value0.head)) {
-                    var __tco_acc = $foreign.cons($49.value0.head)(acc);
-                    acc = __tco_acc;
-                    xs = $49.value0.tail;
-                    continue tco;
-                };
-                return {
-                    init: $foreign.reverse(acc), 
-                    rest: xs
-                };
-            };
-        };
-    };
-    return go([  ]);
-};
-var takeWhile = function (p) {
-    return function (xs) {
-        return (span(p)(xs)).init;
-    };
-};
 var sortBy = function (comp) {
     return function (xs) {
         var comp$prime = function (x) {
             return function (y) {
-                var $53 = comp(x)(y);
-                if ($53 instanceof Data_Ordering.GT) {
+                var $51 = comp(x)(y);
+                if ($51 instanceof Data_Ordering.GT) {
                     return 1;
                 };
-                if ($53 instanceof Data_Ordering.EQ) {
+                if ($51 instanceof Data_Ordering.EQ) {
                     return 0;
                 };
-                if ($53 instanceof Data_Ordering.LT) {
+                if ($51 instanceof Data_Ordering.LT) {
                     return -1;
                 };
-                throw new Error("Failed pattern match at Data.Array line 451, column 15 - line 456, column 1: " + [ $53.constructor.name ]);
+                throw new Error("Failed pattern match at Data.Array line 467, column 15 - line 472, column 1: " + [ $51.constructor.name ]);
             };
         };
         return $foreign.sortImpl(comp$prime)(xs);
@@ -24748,16 +24731,16 @@ var $$null = function (xs) {
 };
 var nubBy = function (eq) {
     return function (xs) {
-        var $54 = uncons(xs);
-        if ($54 instanceof Data_Maybe.Just) {
-            return $foreign.cons($54.value0.head)(nubBy(eq)($foreign.filter(function (y) {
-                return !eq($54.value0.head)(y);
-            })($54.value0.tail)));
+        var $52 = uncons(xs);
+        if ($52 instanceof Data_Maybe.Just) {
+            return $foreign.cons($52.value0.head)(nubBy(eq)($foreign.filter(function (y) {
+                return !eq($52.value0.head)(y);
+            })($52.value0.tail)));
         };
-        if ($54 instanceof Data_Maybe.Nothing) {
+        if ($52 instanceof Data_Maybe.Nothing) {
             return [  ];
         };
-        throw new Error("Failed pattern match at Data.Array line 540, column 3 - line 542, column 18: " + [ $54.constructor.name ]);
+        throw new Error("Failed pattern match at Data.Array line 568, column 3 - line 570, column 18: " + [ $52.constructor.name ]);
     };
 };
 var nub = function (dictEq) {
@@ -24792,11 +24775,21 @@ var init = function (xs) {
     if (Data_Boolean.otherwise) {
         return new Data_Maybe.Just($foreign.slice(0)($foreign.length(xs) - 1)(xs));
     };
-    throw new Error("Failed pattern match at Data.Array line 242, column 1 - line 244, column 55: " + [ xs.constructor.name ]);
+    throw new Error("Failed pattern match at Data.Array line 249, column 1 - line 251, column 55: " + [ xs.constructor.name ]);
 };
 var index = $foreign.indexImpl(Data_Maybe.Just.create)(Data_Maybe.Nothing.value);
 var last = function (xs) {
     return index(xs)($foreign.length(xs) - 1);
+};
+var unsnoc = function (xs) {
+    return Control_Apply.apply(Data_Maybe.applyMaybe)(Data_Functor.map(Data_Maybe.functorMaybe)(function (v) {
+        return function (v1) {
+            return {
+                init: v, 
+                last: v1
+            };
+        };
+    })(init(xs)))(last(xs));
 };
 var modifyAt = function (i) {
     return function (f) {
@@ -24808,29 +24801,78 @@ var modifyAt = function (i) {
         };
     };
 };
-var head = $foreign["uncons'"](Data_Function["const"](Data_Maybe.Nothing.value))(function (x) {
-    return function (v) {
-        return new Data_Maybe.Just(x);
+var span = function (p) {
+    return function (arr) {
+        var go = function (__copy_i) {
+            var i = __copy_i;
+            tco: while (true) {
+                var $56 = index(arr)(i);
+                if ($56 instanceof Data_Maybe.Just) {
+                    var $57 = p($56.value0);
+                    if ($57) {
+                        var __tco_i = i + 1 | 0;
+                        i = __tco_i;
+                        continue tco;
+                    };
+                    if (!$57) {
+                        return new Data_Maybe.Just(i);
+                    };
+                    throw new Error("Failed pattern match at Data.Array line 529, column 17 - line 529, column 49: " + [ $57.constructor.name ]);
+                };
+                if ($56 instanceof Data_Maybe.Nothing) {
+                    return Data_Maybe.Nothing.value;
+                };
+                throw new Error("Failed pattern match at Data.Array line 528, column 5 - line 530, column 25: " + [ $56.constructor.name ]);
+            };
+        };
+        var breakIndex = go(0);
+        if (breakIndex instanceof Data_Maybe.Just && breakIndex.value0 === 0) {
+            return {
+                init: [  ], 
+                rest: arr
+            };
+        };
+        if (breakIndex instanceof Data_Maybe.Just) {
+            return {
+                init: $foreign.slice(0)(breakIndex.value0)(arr), 
+                rest: $foreign.slice(breakIndex.value0)($foreign.length(arr))(arr)
+            };
+        };
+        if (breakIndex instanceof Data_Maybe.Nothing) {
+            return {
+                init: arr, 
+                rest: [  ]
+            };
+        };
+        throw new Error("Failed pattern match at Data.Array line 515, column 3 - line 521, column 30: " + [ breakIndex.constructor.name ]);
     };
-});
+};
+var takeWhile = function (p) {
+    return function (xs) {
+        return (span(p)(xs)).init;
+    };
+};
+var head = function (xs) {
+    return index(xs)(0);
+};
 var groupBy = function (op) {
     var go = function (__copy_acc) {
         return function (__copy_xs) {
             var acc = __copy_acc;
             var xs = __copy_xs;
             tco: while (true) {
-                var $59 = uncons(xs);
-                if ($59 instanceof Data_Maybe.Just) {
-                    var sp = span(op($59.value0.head))($59.value0.tail);
-                    var __tco_acc = $foreign.cons(new Data_NonEmpty.NonEmpty($59.value0.head, sp.init))(acc);
+                var $62 = uncons(xs);
+                if ($62 instanceof Data_Maybe.Just) {
+                    var sp = span(op($62.value0.head))($62.value0.tail);
+                    var __tco_acc = $foreign.cons(new Data_NonEmpty.NonEmpty($62.value0.head, sp.init))(acc);
                     acc = __tco_acc;
                     xs = sp.rest;
                     continue tco;
                 };
-                if ($59 instanceof Data_Maybe.Nothing) {
+                if ($62 instanceof Data_Maybe.Nothing) {
                     return $foreign.reverse(acc);
                 };
-                throw new Error("Failed pattern match at Data.Array line 526, column 15 - line 530, column 27: " + [ $59.constructor.name ]);
+                throw new Error("Failed pattern match at Data.Array line 554, column 15 - line 558, column 27: " + [ $62.constructor.name ]);
             };
         };
     };
@@ -24842,8 +24884,8 @@ var group = function (dictEq) {
     };
 };
 var group$prime = function (dictOrd) {
-    return function ($76) {
-        return group(dictOrd["__superclass_Data.Eq.Eq_0"]())(sort(dictOrd)($76));
+    return function ($77) {
+        return group(dictOrd["__superclass_Data.Eq.Eq_0"]())(sort(dictOrd)($77));
     };
 };
 var fromFoldable = function (dictFoldable) {
@@ -24868,7 +24910,7 @@ var foldRecM = function (dictMonadRec) {
                                 }));
                             });
                         };
-                        throw new Error("Failed pattern match at Data.Array line 638, column 3 - line 642, column 42: " + [ res.constructor.name, i.constructor.name ]);
+                        throw new Error("Failed pattern match at Data.Array line 669, column 3 - line 673, column 42: " + [ res.constructor.name, i.constructor.name ]);
                     };
                 };
                 return Control_Monad_Rec_Class.tailRecM2(dictMonadRec)(go)(a)(0);
@@ -24922,29 +24964,6 @@ var intersectBy = function (eq) {
 var intersect = function (dictEq) {
     return intersectBy(Data_Eq.eq(dictEq));
 };
-var filterM = function (dictMonad) {
-    return function (p) {
-        return $foreign["uncons'"](function (v) {
-            return Control_Applicative.pure(dictMonad["__superclass_Control.Applicative.Applicative_0"]())([  ]);
-        })(function (x) {
-            return function (xs) {
-                return Control_Bind.bind(dictMonad["__superclass_Control.Bind.Bind_1"]())(p(x))(function (v) {
-                    return Control_Bind.bind(dictMonad["__superclass_Control.Bind.Bind_1"]())(filterM(dictMonad)(p)(xs))(function (v1) {
-                        return Control_Applicative.pure(dictMonad["__superclass_Control.Applicative.Applicative_0"]())((function () {
-                            if (v) {
-                                return $foreign.cons(x)(v1);
-                            };
-                            if (!v) {
-                                return v1;
-                            };
-                            throw new Error("Failed pattern match at Data.Array line 418, column 3 - line 418, column 34: " + [ v.constructor.name ]);
-                        })());
-                    });
-                });
-            };
-        });
-    };
-};
 var elemLastIndex = function (dictEq) {
     return function (x) {
         return findLastIndex(function (v) {
@@ -24993,41 +25012,47 @@ var $$delete = function (dictEq) {
     return deleteBy(Data_Eq.eq(dictEq));
 };
 var difference = function (dictEq) {
-    return function (xs) {
-        return function (ys) {
-            if ($$null(xs)) {
-                return [  ];
-            };
-            if (Data_Boolean.otherwise) {
-                return $foreign["uncons'"](Data_Function["const"](xs))(function (z) {
-                    return function (zs) {
-                        return difference(dictEq)($$delete(dictEq)(z)(xs))(zs);
-                    };
-                })(ys);
-            };
-            throw new Error("Failed pattern match at Data.Array line 572, column 1 - line 574, column 67: " + [ xs.constructor.name, ys.constructor.name ]);
-        };
-    };
+    return Data_Foldable.foldr(Data_Foldable.foldableArray)($$delete(dictEq));
 };
 var concatMap = Data_Function.flip(Control_Bind.bind(Control_Bind.bindArray));
 var mapMaybe = function (f) {
-    return concatMap(function ($77) {
-        return Data_Maybe.maybe([  ])(singleton)(f($77));
+    return concatMap(function ($78) {
+        return Data_Maybe.maybe([  ])(singleton)(f($78));
     });
+};
+var filterA = function (dictApplicative) {
+    return function (p) {
+        return function ($79) {
+            return Data_Functor.map((dictApplicative["__superclass_Control.Apply.Apply_0"]())["__superclass_Data.Functor.Functor_0"]())(mapMaybe(function (v) {
+                if (v.value1) {
+                    return new Data_Maybe.Just(v.value0);
+                };
+                if (!v.value1) {
+                    return Data_Maybe.Nothing.value;
+                };
+                throw new Error("Failed pattern match at Data.Array line 430, column 38 - line 430, column 67: " + [ v.value1.constructor.name ]);
+            }))(Data_Traversable.traverse(Data_Traversable.traversableArray)(dictApplicative)(function (x) {
+                return Data_Functor.map((dictApplicative["__superclass_Control.Apply.Apply_0"]())["__superclass_Data.Functor.Functor_0"]())(Data_Tuple.Tuple.create(x))(p(x));
+            })($79));
+        };
+    };
+};
+var filterM = function (dictMonad) {
+    return filterA(dictMonad["__superclass_Control.Applicative.Applicative_0"]());
 };
 var catMaybes = mapMaybe(Control_Category.id(Control_Category.categoryFn));
 var alterAt = function (i) {
     return function (f) {
         return function (xs) {
             var go = function (x) {
-                var $74 = f(x);
-                if ($74 instanceof Data_Maybe.Nothing) {
+                var $75 = f(x);
+                if ($75 instanceof Data_Maybe.Nothing) {
                     return deleteAt(i)(xs);
                 };
-                if ($74 instanceof Data_Maybe.Just) {
-                    return updateAt(i)($74.value0)(xs);
+                if ($75 instanceof Data_Maybe.Just) {
+                    return updateAt(i)($75.value0)(xs);
                 };
-                throw new Error("Failed pattern match at Data.Array line 376, column 10 - line 378, column 32: " + [ $74.constructor.name ]);
+                throw new Error("Failed pattern match at Data.Array line 389, column 10 - line 391, column 32: " + [ $75.constructor.name ]);
             };
             return Data_Maybe.maybe(Data_Maybe.Nothing.value)(go)(index(xs)(i));
         };
@@ -25044,6 +25069,7 @@ module.exports = {
     dropWhile: dropWhile, 
     elemIndex: elemIndex, 
     elemLastIndex: elemLastIndex, 
+    filterA: filterA, 
     filterM: filterM, 
     findIndex: findIndex, 
     findLastIndex: findLastIndex, 
@@ -25081,6 +25107,7 @@ module.exports = {
     union: union, 
     unionBy: unionBy, 
     unsafeIndex: unsafeIndex, 
+    unsnoc: unsnoc, 
     unzip: unzip, 
     updateAt: updateAt, 
     zip: zip, 
@@ -30326,6 +30353,13 @@ exports.toStringAs = function (radix) {
   };
 };
 
+exports.pow = function (x) {
+  return function (y) {
+    /* jshint bitwise: false */
+    return Math.pow(x,y) | 0;
+  };
+};
+
 },{}],276:[function(require,module,exports){
 // Generated by psc version 0.10.1
 "use strict";
@@ -30352,7 +30386,7 @@ var radix = function (n) {
     if (Data_Boolean.otherwise) {
         return Data_Maybe.Nothing.value;
     };
-    throw new Error("Failed pattern match at Data.Int line 124, column 1 - line 125, column 38: " + [ n.constructor.name ]);
+    throw new Error("Failed pattern match at Data.Int line 125, column 1 - line 126, column 38: " + [ n.constructor.name ]);
 };
 var odd = function (x) {
     return Data_Int_Bits.and(x)(1) !== 0;
@@ -30374,7 +30408,7 @@ var unsafeClamp = function (x) {
             return Data_Maybe.fromJust(dictPartial)(fromNumber(x));
         });
     };
-    throw new Error("Failed pattern match at Data.Int line 65, column 1 - line 68, column 56: " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at Data.Int line 66, column 1 - line 69, column 56: " + [ x.constructor.name ]);
 };
 var round = function ($3) {
     return unsafeClamp($$Math.round($3));
@@ -30406,6 +30440,7 @@ module.exports = {
     odd: odd, 
     radix: radix, 
     round: round, 
+    pow: $foreign.pow, 
     toNumber: $foreign.toNumber, 
     toStringAs: $foreign.toStringAs
 };
@@ -33099,9 +33134,14 @@ module.exports = {
 },{"../Control.Applicative":162,"../Control.Apply":164,"../Control.Bind":168,"../Control.Comonad":170,"../Control.Extend":171,"../Control.Monad":204,"../Data.Bounded":236,"../Data.Eq":241,"../Data.Functor":266,"../Data.Functor.Invariant":264,"../Data.Monoid":291,"../Data.Newtype":293,"../Data.Ord":300,"../Data.Semigroup":305,"../Data.Semiring":307,"../Data.Show":309,"../Prelude":346}],291:[function(require,module,exports){
 // Generated by psc version 0.10.1
 "use strict";
-var Data_Function = require("../Data.Function");
+var Prelude = require("../Prelude");
 var Data_Semigroup = require("../Data.Semigroup");
 var Data_Unit = require("../Data.Unit");
+var Data_Function = require("../Data.Function");
+var Data_Ord = require("../Data.Ord");
+var Data_Eq = require("../Data.Eq");
+var Data_EuclideanRing = require("../Data.EuclideanRing");
+var Data_Boolean = require("../Data.Boolean");
 var Monoid = function (__superclass_Data$dotSemigroup$dotSemigroup_0, mempty) {
     this["__superclass_Data.Semigroup.Semigroup_0"] = __superclass_Data$dotSemigroup$dotSemigroup_0;
     this.mempty = mempty;
@@ -33123,16 +33163,39 @@ var monoidFn = function (dictMonoid) {
         return Data_Semigroup.semigroupFn(dictMonoid["__superclass_Data.Semigroup.Semigroup_0"]());
     }, Data_Function["const"](mempty(dictMonoid)));
 };
+var power = function (dictMonoid) {
+    return function (x) {
+        var go = function (p) {
+            if (p <= 0) {
+                return mempty(dictMonoid);
+            };
+            if (p === 1) {
+                return x;
+            };
+            if (p % 2 === 0) {
+                var x$prime = go(p / 2 | 0);
+                return Data_Semigroup.append(dictMonoid["__superclass_Data.Semigroup.Semigroup_0"]())(x$prime)(x$prime);
+            };
+            if (Data_Boolean.otherwise) {
+                var x$prime = go(p / 2 | 0);
+                return Data_Semigroup.append(dictMonoid["__superclass_Data.Semigroup.Semigroup_0"]())(x$prime)(Data_Semigroup.append(dictMonoid["__superclass_Data.Semigroup.Semigroup_0"]())(x$prime)(x));
+            };
+            throw new Error("Failed pattern match at Data.Monoid line 49, column 3 - line 53, column 57: " + [ p.constructor.name ]);
+        };
+        return go;
+    };
+};
 module.exports = {
     Monoid: Monoid, 
     mempty: mempty, 
+    power: power, 
     monoidUnit: monoidUnit, 
     monoidFn: monoidFn, 
     monoidString: monoidString, 
     monoidArray: monoidArray
 };
 
-},{"../Data.Function":262,"../Data.Semigroup":305,"../Data.Unit":327}],292:[function(require,module,exports){
+},{"../Data.Boolean":233,"../Data.Eq":241,"../Data.EuclideanRing":243,"../Data.Function":262,"../Data.Ord":300,"../Data.Semigroup":305,"../Data.Unit":327,"../Prelude":346}],292:[function(require,module,exports){
 arguments[4][223][0].apply(exports,arguments)
 },{"dup":223}],293:[function(require,module,exports){
 // Generated by psc version 0.10.1
@@ -36519,15 +36582,21 @@ var Data_Int = require("../Data.Int");
 var Data_Traversable = require("../Data.Traversable");
 var Data_Validation_Semigroup = require("../Data.Validation.Semigroup");
 var Partial_Unsafe = require("../Partial.Unsafe");
-var Control_Monad_Aff = require("../Control.Monad.Aff");
-var Data_HTTP_Method = require("../Data.HTTP.Method");
-var Network_HTTP_Affjax = require("../Network.HTTP.Affjax");
+var Data_Show = require("../Data.Show");
 var Control_Monad_Eff = require("../Control.Monad.Eff");
 var Control_Monad_Eff_Console = require("../Control.Monad.Eff.Console");
+var Control_Monad_Eff_Class = require("../Control.Monad.Eff.Class");
+var Control_Monad_Eff_Exception = require("../Control.Monad.Eff.Exception");
+var Control_Monad_Aff = require("../Control.Monad.Aff");
+var Data_Either = require("../Data.Either");
+var Data_HTTP_Method = require("../Data.HTTP.Method");
+var Network_HTTP_Affjax = require("../Network.HTTP.Affjax");
+var Network_HTTP_StatusCode = require("../Network.HTTP.StatusCode");
+var Network_HTTP_ResponseHeader = require("../Network.HTTP.ResponseHeader");
+var Network_HTTP_Affjax_Response = require("../Network.HTTP.Affjax.Response");
 var Control_Monad_Except = require("../Control.Monad.Except");
 var Data_Array = require("../Data.Array");
 var Data_List_Types = require("../Data.List.Types");
-var Data_Either = require("../Data.Either");
 var Data_Foldable = require("../Data.Foldable");
 var Data_Foreign = require("../Data.Foreign");
 var Data_Foreign_Index = require("../Data.Foreign.Index");
@@ -36552,10 +36621,9 @@ var Data_Unit = require("../Data.Unit");
 var Data_Semiring = require("../Data.Semiring");
 var Data_Function = require("../Data.Function");
 var Control_Semigroupoid = require("../Control.Semigroupoid");
-var Data_Show = require("../Data.Show");
+var Data_Functor = require("../Data.Functor");
 var Data_Eq = require("../Data.Eq");
 var Control_Apply = require("../Control.Apply");
-var Data_Functor = require("../Data.Functor");
 var Equation = function (x) {
     return x;
 };
@@ -36617,9 +36685,81 @@ var mapForignEvent = function (fe) {
         if (eitherEventValueForign instanceof Data_Either.Right) {
             return new Data_Either.Right(eitherEventValueForign.value0);
         };
-        throw new Error("Failed pattern match at Main line 109, column 26 - line 111, column 28: " + [ eitherEventValueForign.constructor.name ]);
+        throw new Error("Failed pattern match at Main line 114, column 26 - line 116, column 28: " + [ eitherEventValueForign.constructor.name ]);
     })();
     return eitherEventValue;
+};
+var makeRequest = function (dictRespondable) {
+    return function (onError$prime) {
+        return function (onSuccess$prime) {
+            return function (url) {
+                return Control_Monad_Aff.runAff(onError$prime)(onSuccess$prime)(Network_HTTP_Affjax.get(dictRespondable)(url));
+            };
+        };
+    };
+};
+var updateAppState = function (ctx) {
+    return function (update) {
+        return function (e) {
+            return Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
+                var v = React.readState(ctx)();
+                var eitherNewEquationOrErrors = Data_Functor.map(Data_Either.functorEither)(update)(mapForignEvent(valueOf(e)));
+                var failedUpdate = function (lv) {
+                    return function __do() {
+                        React.writeState(ctx)({
+                            equation: v.equation, 
+                            errors: lv
+                        })();
+                        return Data_Unit.unit;
+                    };
+                };
+                var successUpdate = function (ne) {
+                    return React.writeState(ctx)({
+                        equation: ne, 
+                        errors: [  ]
+                    });
+                };
+                var successUpdate$prime = function (eq) {
+                    return function (res) {
+                        var ne = (function () {
+                            var $34 = {};
+                            for (var $35 in eq) {
+                                if (eq.hasOwnProperty($35)) {
+                                    $34[$35] = eq[$35];
+                                };
+                            };
+                            $34.res = res.response;
+                            return $34;
+                        })();
+                        return function __do() {
+                            React.writeState(ctx)({
+                                equation: ne, 
+                                errors: [  ]
+                            })();
+                            return Data_Unit.unit;
+                        };
+                    };
+                };
+                var failedUpdate$prime = function (lv) {
+                    return function __do() {
+                        Control_Monad_Eff_Console.log("problem ajax")();
+                        React.writeState(ctx)({
+                            equation: v.equation, 
+                            errors: [ Data_Show.show(Control_Monad_Eff_Exception.showError)(lv) ]
+                        })();
+                        return Data_Unit.unit;
+                    };
+                };
+                var re = function (v1) {
+                    return function __do() {
+                        makeRequest(Network_HTTP_Affjax_Response.responsableString)(failedUpdate$prime)(successUpdate$prime(v1))("/calc/" + (v1.o1 + ("/add/" + v1.o2)))();
+                        return Data_Unit.unit;
+                    };
+                };
+                return Data_Either.either(failedUpdate)(re)(eitherNewEquationOrErrors)();
+            });
+        };
+    };
 };
 var lengthIs = function (v) {
     return function (v1) {
@@ -36649,121 +36789,58 @@ var initialState = {
     equation: equation("")("")("")(""), 
     errors: [  ]
 };
-var validateEquation = function (v) {
-    return Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Data_Functor.map(Data_Validation_Semigroup.functorV)(equation)(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("first operand")(v.o1))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o1))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("operator")(v.op))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.op))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("second operand")(v.o2))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o2))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("result")(v.res))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.res)));
-};
-var validateEquation$prime = function (p) {
-    return Data_Validation_Semigroup.unV(Data_Either.Left.create)(Data_Either.Right.create)(validateEquation(p));
-};
-var calcEitherEquation = function (v) {
-    if (v instanceof Data_Either.Left) {
-        return v;
-    };
-    if (v instanceof Data_Either.Right) {
-        var result = function (v1) {
-            if (v1 instanceof Data_Either.Left) {
-                return v;
-            };
-            if (v1 instanceof Data_Either.Right) {
-                return Data_Either.Right.create(equation(v.value0.o1)(v.value0.op)(v.value0.o2)(Data_Show.show(Data_Show.showInt)(v1.value0)));
-            };
-            throw new Error("Failed pattern match at Main line 133, column 7 - line 133, column 38: " + [ v1.constructor.name ]);
-        };
-        var calc = function (o1$prime) {
-            return function (op$prime) {
-                return function (o2$prime) {
-                    var maybeO2 = Data_Int.fromString(o2$prime);
-                    var maybeO1 = Data_Int.fromString(o1$prime);
-                    var mayBeResult = Control_Apply.apply(Data_Maybe.applyMaybe)(Control_Apply.apply(Data_Maybe.applyMaybe)(maybeOp(v.value0.op))(maybeO1))(maybeO2);
-                    if (mayBeResult instanceof Data_Maybe.Nothing) {
-                        return new Data_Either.Left([ "there is an error in the input" ]);
-                    };
-                    if (mayBeResult instanceof Data_Maybe.Just) {
-                        return new Data_Either.Right(mayBeResult.value0);
-                    };
-                    throw new Error("Failed pattern match at Main line 129, column 13 - line 131, column 32: " + [ mayBeResult.constructor.name ]);
-                };
-            };
-        };
-        return result(calc(v.value0.o1)(v.value0.op)(v.value0.o2));
-    };
-    throw new Error("Failed pattern match at Main line 122, column 1 - line 122, column 44: " + [ v.constructor.name ]);
-};
-var updateAppState = function (ctx) {
-    return function (update) {
-        return function (e) {
-            return Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
-                var v = React.readState(ctx)();
-                var eitherNewEquationOrErrors = Data_Functor.map(Data_Either.functorEither)(update)(mapForignEvent(valueOf(e)));
-                var failedUpdate = function (lv) {
-                    return React.writeState(ctx)({
-                        equation: v.equation, 
-                        errors: lv
-                    });
-                };
-                var successUpdate = function (ne) {
-                    return React.writeState(ctx)({
-                        equation: ne, 
-                        errors: [  ]
-                    });
-                };
-                return Data_Either.either(failedUpdate)(successUpdate)(calcEitherEquation(eitherNewEquationOrErrors))();
-            });
-        };
-    };
-};
 var equationReactClass = React.createClass(React.spec(initialState)(function (ctx) {
     return function __do() {
         var v = React.readState(ctx)();
         var updateResult = function (s) {
             return Equation((function () {
-                var $51 = {};
-                for (var $52 in v.equation) {
-                    if (v.equation.hasOwnProperty($52)) {
-                        $51[$52] = v.equation[$52];
+                var $44 = {};
+                for (var $45 in v.equation) {
+                    if (v.equation.hasOwnProperty($45)) {
+                        $44[$45] = v.equation[$45];
                     };
                 };
-                $51.res = s + (v.equation.o1 + (v.equation.op + v.equation.o2));
-                return $51;
+                $44.res = s + (v.equation.o1 + (v.equation.op + v.equation.o2));
+                return $44;
             })());
         };
         var updateOperator = function (s) {
             return Equation((function () {
-                var $54 = {};
-                for (var $55 in v.equation) {
-                    if (v.equation.hasOwnProperty($55)) {
-                        $54[$55] = v.equation[$55];
+                var $47 = {};
+                for (var $48 in v.equation) {
+                    if (v.equation.hasOwnProperty($48)) {
+                        $47[$48] = v.equation[$48];
                     };
                 };
-                $54.op = s;
-                $54.res = v.equation.o1 + (s + v.equation.o2);
-                return $54;
+                $47.op = s;
+                $47.res = v.equation.o1 + (s + v.equation.o2);
+                return $47;
             })());
         };
         var updateOperandTwo = function (s) {
             return Equation((function () {
-                var $57 = {};
-                for (var $58 in v.equation) {
-                    if (v.equation.hasOwnProperty($58)) {
-                        $57[$58] = v.equation[$58];
+                var $50 = {};
+                for (var $51 in v.equation) {
+                    if (v.equation.hasOwnProperty($51)) {
+                        $50[$51] = v.equation[$51];
                     };
                 };
-                $57.o2 = s;
-                $57.res = v.equation.o1 + (v.equation.op + s);
-                return $57;
+                $50.o2 = s;
+                $50.res = v.equation.o1 + (v.equation.op + s);
+                return $50;
             })());
         };
         var updateOperandOne = function (s) {
             return Equation((function () {
-                var $60 = {};
-                for (var $61 in v.equation) {
-                    if (v.equation.hasOwnProperty($61)) {
-                        $60[$61] = v.equation[$61];
+                var $53 = {};
+                for (var $54 in v.equation) {
+                    if (v.equation.hasOwnProperty($54)) {
+                        $53[$54] = v.equation[$54];
                     };
                 };
-                $60.o1 = s;
-                $60.res = s + (v.equation.op + v.equation.o2);
-                return $60;
+                $53.o1 = s;
+                $53.res = s + (v.equation.op + v.equation.o2);
+                return $53;
             })());
         };
         var renderValidationError = function (err) {
@@ -36799,6 +36876,46 @@ var main = Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
         return Data_Maybe.fromJust(dictPartial);
     })(Data_Nullable.toMaybe(v1)))();
 });
+var validateEquation = function (v) {
+    return Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Data_Functor.map(Data_Validation_Semigroup.functorV)(equation)(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("first operand")(v.o1))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o1))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("operator")(v.op))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.op))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("second operand")(v.o2))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o2))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("result")(v.res))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.res)));
+};
+var validateEquation$prime = function (p) {
+    return Data_Validation_Semigroup.unV(Data_Either.Left.create)(Data_Either.Right.create)(validateEquation(p));
+};
+var calcEitherEquation = function (v) {
+    if (v instanceof Data_Either.Left) {
+        return v;
+    };
+    if (v instanceof Data_Either.Right) {
+        var result = function (v1) {
+            if (v1 instanceof Data_Either.Left) {
+                return v;
+            };
+            if (v1 instanceof Data_Either.Right) {
+                return Data_Either.Right.create(equation(v.value0.o1)(v.value0.op)(v.value0.o2)(Data_Show.show(Data_Show.showInt)(v1.value0)));
+            };
+            throw new Error("Failed pattern match at Main line 132, column 7 - line 132, column 38: " + [ v1.constructor.name ]);
+        };
+        var calc = function (o1$prime) {
+            return function (op$prime) {
+                return function (o2$prime) {
+                    var maybeO2 = Data_Int.fromString(o2$prime);
+                    var maybeO1 = Data_Int.fromString(o1$prime);
+                    var mayBeResult = Control_Apply.apply(Data_Maybe.applyMaybe)(Control_Apply.apply(Data_Maybe.applyMaybe)(maybeOp(v.value0.op))(maybeO1))(maybeO2);
+                    if (mayBeResult instanceof Data_Maybe.Nothing) {
+                        return new Data_Either.Left([ "there is an error in the input" ]);
+                    };
+                    if (mayBeResult instanceof Data_Maybe.Just) {
+                        return new Data_Either.Right(mayBeResult.value0);
+                    };
+                    throw new Error("Failed pattern match at Main line 128, column 13 - line 130, column 32: " + [ mayBeResult.constructor.name ]);
+                };
+            };
+        };
+        return result(calc(v.value0.o1)(v.value0.op)(v.value0.o2));
+    };
+    throw new Error("Failed pattern match at Main line 121, column 1 - line 121, column 44: " + [ v.constructor.name ]);
+};
 module.exports = {
     AppState: AppState, 
     Equation: Equation, 
@@ -36808,6 +36925,7 @@ module.exports = {
     initialState: initialState, 
     lengthIs: lengthIs, 
     main: main, 
+    makeRequest: makeRequest, 
     mapForignEvent: mapForignEvent, 
     matches: matches, 
     maybeOp: maybeOp, 
@@ -36818,7 +36936,7 @@ module.exports = {
     valueOf: valueOf
 };
 
-},{"../Control.Applicative":162,"../Control.Apply":164,"../Control.Bind":168,"../Control.Monad.Aff":177,"../Control.Monad.Eff":190,"../Control.Monad.Eff.Console":182,"../Control.Monad.Except":193,"../Control.Monad.Except.Trans":192,"../Control.Semigroupoid":210,"../DOM":224,"../DOM.HTML":219,"../DOM.HTML.Types":215,"../DOM.HTML.Window":217,"../DOM.Node.NonElementParentNode":221,"../DOM.Node.Types":222,"../Data.Array":228,"../Data.Either":239,"../Data.Eq":241,"../Data.Foldable":246,"../Data.Foreign":256,"../Data.Foreign.Index":249,"../Data.Function":262,"../Data.Functor":266,"../Data.HTTP.Method":269,"../Data.Identity":272,"../Data.Int":276,"../Data.List.Types":278,"../Data.Maybe":282,"../Data.Nullable":296,"../Data.Semigroup":305,"../Data.Semiring":307,"../Data.Show":309,"../Data.String":320,"../Data.String.Regex":316,"../Data.String.Regex.Flags":314,"../Data.Traversable":322,"../Data.Unit":327,"../Data.Validation.Semigroup":328,"../Network.HTTP.Affjax":338,"../Partial.Unsafe":343,"../Prelude":346,"../React":351,"../React.DOM":349,"../React.DOM.Props":348,"../ReactDOM":353}],333:[function(require,module,exports){
+},{"../Control.Applicative":162,"../Control.Apply":164,"../Control.Bind":168,"../Control.Monad.Aff":177,"../Control.Monad.Eff":190,"../Control.Monad.Eff.Class":180,"../Control.Monad.Eff.Console":182,"../Control.Monad.Eff.Exception":184,"../Control.Monad.Except":193,"../Control.Monad.Except.Trans":192,"../Control.Semigroupoid":210,"../DOM":224,"../DOM.HTML":219,"../DOM.HTML.Types":215,"../DOM.HTML.Window":217,"../DOM.Node.NonElementParentNode":221,"../DOM.Node.Types":222,"../Data.Array":228,"../Data.Either":239,"../Data.Eq":241,"../Data.Foldable":246,"../Data.Foreign":256,"../Data.Foreign.Index":249,"../Data.Function":262,"../Data.Functor":266,"../Data.HTTP.Method":269,"../Data.Identity":272,"../Data.Int":276,"../Data.List.Types":278,"../Data.Maybe":282,"../Data.Nullable":296,"../Data.Semigroup":305,"../Data.Semiring":307,"../Data.Show":309,"../Data.String":320,"../Data.String.Regex":316,"../Data.String.Regex.Flags":314,"../Data.Traversable":322,"../Data.Unit":327,"../Data.Validation.Semigroup":328,"../Network.HTTP.Affjax":338,"../Network.HTTP.Affjax.Response":336,"../Network.HTTP.ResponseHeader":340,"../Network.HTTP.StatusCode":341,"../Partial.Unsafe":343,"../Prelude":346,"../React":351,"../React.DOM":349,"../React.DOM.Props":348,"../ReactDOM":353}],333:[function(require,module,exports){
 "use strict";
 
 // module Math

@@ -10,6 +10,18 @@ import Data.Traversable (traverse)
 import Data.Validation.Semigroup (V, unV, invalid)
 import Partial.Unsafe (unsafePartial)
 
+import Data.Show -- (Show)
+import Control.Monad.Eff (Eff)
+import Control.Monad.Eff.Console (CONSOLE, log)
+import Control.Monad.Eff.Class (liftEff)
+import Control.Monad.Eff.Exception (Error, EXCEPTION)
+import Control.Monad.Aff (Aff, Canceler, launchAff, runAff)
+import Data.Either (Either(..))
+import Data.HTTP.Method (Method(..))
+import Network.HTTP.Affjax (AffjaxResponse, AJAX, URL, get, defaultRequest, affjax)
+import Network.HTTP.StatusCode (StatusCode)
+import Network.HTTP.ResponseHeader (ResponseHeader)
+import Network.HTTP.Affjax.Response -- (Respondable(..))
 
 import Control.Monad.Aff (launchAff)
 import Data.HTTP.Method (Method(..))
@@ -52,13 +64,6 @@ maybeOp::String -> Maybe (Int->Int->Int)
 maybeOp "+" = Just (\o1 o2 -> o1 + o2)
 maybeOp "*" = Just (\o1 o2 -> o1 * o2)
 maybeOp   _ = Nothing
-
--- maybeOp'::String -> Maybe (Int->Int->Int)
--- maybeOp' "+" =
--- launchAff $ do
---   res <- affjax $ defaultRequest { url = "http://localhost:8080/calc/3/add/4", method = Left GET }
---   liftEff $ log $ "GET /api response: " <> res.response
--- maybeOp'   _ = Nothing
 
 type Errors = Array String
 
@@ -111,12 +116,6 @@ mapForignEvent fe =
          Right s -> Right s 
   in eitherEventValue
   
--- updateEquation::(String->Equation)->Event->Either Errors Equation
--- updateEquation update e = 
---   let eitherEventValue = mapForignEvent (valueOf e)
---       eitherNewEquation::Either Errors Equation
---       eitherNewEquation = calcEitherEquation $ update <$> eitherEventValue
---   in  eitherNewEquation
   
 calcEitherEquation::Either Errors Equation->Either Errors Equation
 calcEitherEquation leftVal@Left _ = leftVal
@@ -134,26 +133,45 @@ calcEitherEquation rightVal@(Right (Equation {o1, op, o2, res})) =
       result (Right i)     = Right $ equation o1 op o2 $ show i
    in result $ calc o1 op o2
 
--- ajaxRequest cb a b = launchAff $ do
---   let url = "http://localhost:8080/calc/" <> show a <> "/add/" <> show b
---   res <- affjax $ defaultRequest { url = url, method = Left GET }
---   liftEff $ cb res.response
+makeRequest::forall res eff. (Respondable res) => 
+    (Error -> Eff ( ajax :: AJAX | eff ) Unit )  
+ -> ({ status :: StatusCode, headers :: Array ResponseHeader, response :: res} -> Eff (ajax::AJAX | eff) Unit)  
+ -> String 
+ -> Eff (ajax :: AJAX | eff) (Canceler (ajax :: AJAX | eff))
+makeRequest onError' onSuccess' url = 
+ runAff onError' onSuccess' $ get url
   
-updateAppState
-  :: forall props eff
-   . ReactThis props AppState
-  -> (String -> Equation)
-  -> Event
-  -> Eff ( console :: CONSOLE
-         , state :: ReactState ReadWrite
-         | eff
-         ) Unit
+-- updateAppState
+--   :: forall props eff
+--    . ReactThis props AppState
+--   -> (String -> Equation)
+--   -> Event
+--   -> Eff ( console :: CONSOLE
+--          , state :: ReactState ReadWrite
+--          | eff
+--          ) Unit
 updateAppState ctx update e = void do
-  AppState {equation:oldEquation, errors} <- readState ctx
+  AppState {equation:Equation oe, errors} <- readState ctx
+  let oldEquation = Equation oe
   let eitherNewEquationOrErrors = update <$> mapForignEvent (valueOf e)
-  let failedUpdate = (\lv -> writeState ctx (AppState { equation: oldEquation, errors: lv }))
+  let failedUpdate = (\lv -> do 
+                                writeState ctx (AppState { equation: oldEquation, errors: lv })
+                                pure unit)
   let successUpdate = (\ne -> writeState ctx (AppState { equation: ne, errors: [] }))
-  either failedUpdate successUpdate (calcEitherEquation eitherNewEquationOrErrors) 
+  let successUpdate' = (\eq res -> do 
+                                 let ne = eq {res=res.response}
+                                 writeState ctx (AppState { equation: Equation ne, errors: [] })
+                                 pure unit
+                                 )
+  let failedUpdate' = (\lv -> do log "problem ajax"
+                                 writeState ctx (AppState { equation: oldEquation, errors: [show lv] })
+                                 pure unit
+                                 )
+  let re = (\(Equation eq)-> do 
+                     makeRequest failedUpdate' (successUpdate' eq) $ "/calc/" <> eq.o1 <> "/add/" <> eq.o2
+                     pure unit)
+  either failedUpdate re eitherNewEquationOrErrors
+--  either failedUpdate successUpdate (calcEitherEquation eitherNewEquationOrErrors) 
 
 equationReactClass :: forall props. ReactClass props
 equationReactClass = createClass $ spec initialState \ctx -> do
