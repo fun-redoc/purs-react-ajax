@@ -141,37 +141,35 @@ makeRequest::forall res eff. (Respondable res) =>
 makeRequest onError' onSuccess' url = 
  runAff onError' onSuccess' $ get url
   
--- updateAppState
---   :: forall props eff
---    . ReactThis props AppState
---   -> (String -> Equation)
---   -> Event
---   -> Eff ( console :: CONSOLE
---          , state :: ReactState ReadWrite
---          | eff
---          ) Unit
-updateAppState ctx update e = void do
-  AppState {equation:Equation oe, errors} <- readState ctx
-  let oldEquation = Equation oe
-  let eitherNewEquationOrErrors = update <$> mapForignEvent (valueOf e)
+updateAppState
+  :: forall props eff
+   . ReactThis props AppState
+  -> (String -> Equation)
+  -> Event
+  -> Eff ( ajax::AJAX
+         , console :: CONSOLE
+         , state :: ReactState ReadWrite
+         | eff
+         ) Unit
+updateAppState ctx updateField e = void do
+  AppState {equation:oldEquation, errors} <- readState ctx
+  let eitherNewEquationOrErrors = updateField <$> mapForignEvent (valueOf e)
   let failedUpdate = (\lv -> do 
                                 writeState ctx (AppState { equation: oldEquation, errors: lv })
                                 pure unit)
-  let successUpdate = (\ne -> writeState ctx (AppState { equation: ne, errors: [] }))
-  let successUpdate' = (\eq res -> do 
+  let successRequest = (\eq res -> do 
                                  let ne = eq {res=res.response}
                                  writeState ctx (AppState { equation: Equation ne, errors: [] })
                                  pure unit
                                  )
-  let failedUpdate' = (\lv -> do log "problem ajax"
+  let failedRequest = (\lv -> do log "problem ajax"
                                  writeState ctx (AppState { equation: oldEquation, errors: [show lv] })
                                  pure unit
                                  )
-  let re = (\(Equation eq)-> do 
-                     makeRequest failedUpdate' (successUpdate' eq) $ "/calc/" <> eq.o1 <> "/add/" <> eq.o2
+  let requestResult = (\(Equation eq)-> do 
+                     makeRequest failedRequest (successRequest eq) $ "/calc/" <> eq.o1 <> "/add/" <> eq.o2
                      pure unit)
-  either failedUpdate re eitherNewEquationOrErrors
---  either failedUpdate successUpdate (calcEitherEquation eitherNewEquationOrErrors) 
+  either failedUpdate requestResult eitherNewEquationOrErrors
 
 equationReactClass :: forall props. ReactClass props
 equationReactClass = createClass $ spec initialState \ctx -> do
