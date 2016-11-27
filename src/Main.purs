@@ -172,7 +172,7 @@ updateAppState ctx updateField e = void do
                                       writeState ctx (AppState { equation: oldEquation, errors: errs })
                                       pure unit
   let successRequest (Equation eq) res = do 
-                                 let ne = eq {res=res.response}
+                                 let ne = eq {res=res}
                                  writeState ctx (AppState { equation: Equation ne, errors: [] })
                                  pure unit
   let failedRequest (err::Error) =  do log $ show err
@@ -180,13 +180,17 @@ updateAppState ctx updateField e = void do
                                        pure unit
   let requestResult eq@(Equation {o1:o1,op:op,o2:o2}) = do 
                   either
-                     failedUpdate
+                     (\_ -> do 
+                         successRequest eq $ o1 <> op <> o2
+                         pure unit)
                      (\(url::URL) -> do 
-                         makeRequest failedRequest (successRequest eq) url
+                         makeRequest failedRequest (\res -> successRequest eq res.response) url
                          pure unit) -- $ "/calc/" <> o1 <> "/add/" <> o2
                      (makeUrl o1 op o2)
                   -- pure unit
   either failedUpdate requestResult eitherNewEquationOrErrors
+  
+-- Problem: typed in value ad result apeares first when the request returns, looks strange
 
 equationReactClass :: forall props. ReactClass props
 equationReactClass = createClass $ spec initialState \ctx -> do
