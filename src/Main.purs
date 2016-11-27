@@ -10,23 +10,20 @@ import Data.Traversable (traverse)
 import Data.Validation.Semigroup (V, unV, invalid)
 import Partial.Unsafe (unsafePartial)
 import Data.Maybe (maybe)
+import Data.Traversable (for)
 
 import Data.Show -- (Show)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (Error, EXCEPTION, message)
-import Control.Monad.Aff (Aff, Canceler, launchAff, runAff)
+import Control.Monad.Aff (Aff, Canceler, launchAff, runAff, later)
 import Data.Either (Either(..))
 import Data.HTTP.Method (Method(..))
 import Network.HTTP.Affjax (AffjaxResponse, AJAX, URL, get, defaultRequest, affjax)
 import Network.HTTP.StatusCode (StatusCode)
 import Network.HTTP.ResponseHeader (ResponseHeader)
 import Network.HTTP.Affjax.Response -- (Respondable(..))
-
-import Control.Monad.Aff (launchAff)
-import Data.HTTP.Method (Method(..))
-import Network.HTTP.Affjax (affjax, defaultRequest)
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
@@ -107,6 +104,7 @@ valueOf e = do
   value <- prop "value" target
   readString value
 
+-- TODO make V of EIther
 mapForignEvent::F String -> Either Errors String
 mapForignEvent fe = 
   let eitherEventValueForign::Either MultipleErrors String
@@ -118,21 +116,21 @@ mapForignEvent fe =
   in eitherEventValue
   
   
-calcEitherEquation::Either Errors Equation->Either Errors Equation
-calcEitherEquation leftVal@Left _ = leftVal
-calcEitherEquation rightVal@(Right (Equation {o1, op, o2, res})) = 
-  let calc::String->String->String->Either Errors Int 
-      calc o1' op' o2' = 
-        let maybeO1 = fromString o1'
-            maybeO2 = fromString o2'
-            mayBeResult = maybeOp op <*> maybeO1 <*> maybeO2
-         in case mayBeResult of
-              Nothing -> Left ["there is an error in the input"]
-              Just i -> Right i
-      result::Either Errors Int -> Either Errors Equation
-      result (Left errors) = rightVal
-      result (Right i)     = Right $ equation o1 op o2 $ show i
-   in result $ calc o1 op o2
+-- calcEitherEquation::Either Errors Equation->Either Errors Equation
+-- calcEitherEquation leftVal@Left _ = leftVal
+-- calcEitherEquation rightVal@(Right (Equation {o1, op, o2, res})) = 
+--   let calc::String->String->String->Either Errors Int 
+--       calc o1' op' o2' = 
+--         let maybeO1 = fromString o1'
+--             maybeO2 = fromString o2'
+--             mayBeResult = maybeOp op <*> maybeO1 <*> maybeO2
+--          in case mayBeResult of
+--               Nothing -> Left ["there is an error in the input"]
+--               Just i -> Right i
+--       result::Either Errors Int -> Either Errors Equation
+--       result (Left errors) = rightVal
+--       result (Right i)     = Right $ equation o1 op o2 $ show i
+--    in result $ calc o1 op o2
 
 makeRequest::forall res eff. (Respondable res) => 
     (Error -> Eff ( ajax :: AJAX | eff ) Unit )  
@@ -140,8 +138,9 @@ makeRequest::forall res eff. (Respondable res) =>
  -> String 
  -> Eff (ajax :: AJAX | eff) (Canceler (ajax :: AJAX | eff))
 makeRequest onError' onSuccess' url = 
- runAff onError' onSuccess' $ get url
+ runAff onError' onSuccess' $ later $ get url
  
+-- TODO make V frrom Eitrhe
 makeUrl::String->String->String->Either Errors URL
 makeUrl o1 op o2 = 
 --  Right $ "/calc/" <> o1 <> urlOp <> o2 
@@ -166,11 +165,12 @@ updateAppState
          | eff
          ) Unit
 updateAppState ctx updateField e = void do
+-- make V from Either --->
   AppState {equation:oldEquation, errors} <- readState ctx
-  let eitherNewEquationOrErrors = updateField <$> mapForignEvent (valueOf e)
-  let failedUpdate (errs::Errors) = do 
-                                      writeState ctx (AppState { equation: oldEquation, errors: errs })
-                                      pure unit
+  let eitherNewEquationOrErrors = (updateField <$> mapForignEvent (valueOf e)) >>= validateEquation'
+  let failedUpdate (errs::Errors) = do  for errs log
+                                        writeState ctx (AppState { equation: oldEquation, errors: errs })
+                                        pure unit
   let successRequest (Equation eq) res = do 
                                  let ne = eq {res=res}
                                  writeState ctx (AppState { equation: Equation ne, errors: [] })
@@ -184,14 +184,15 @@ updateAppState ctx updateField e = void do
                          successRequest eq $ o1 <> op <> o2
                          pure unit)
                      (\(url::URL) -> do 
+                         -- first output the raw equation
+                         successRequest eq $ o1 <> op <> o2
+                         -- asyncronously comoute the result
                          makeRequest failedRequest (\res -> successRequest eq res.response) url
                          pure unit) -- $ "/calc/" <> o1 <> "/add/" <> o2
                      (makeUrl o1 op o2)
                   -- pure unit
   either failedUpdate requestResult eitherNewEquationOrErrors
   
--- Problem: typed in value ad result apeares first when the request returns, looks strange
-
 equationReactClass :: forall props. ReactClass props
 equationReactClass = createClass $ spec initialState \ctx -> do
   AppState { equation: Equation equat, errors } <- readState ctx

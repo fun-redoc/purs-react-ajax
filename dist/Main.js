@@ -36621,9 +36621,9 @@ var Data_Unit = require("../Data.Unit");
 var Data_Semiring = require("../Data.Semiring");
 var Data_Function = require("../Data.Function");
 var Control_Semigroupoid = require("../Control.Semigroupoid");
-var Data_Functor = require("../Data.Functor");
 var Data_Eq = require("../Data.Eq");
 var Control_Apply = require("../Control.Apply");
+var Data_Functor = require("../Data.Functor");
 var Equation = function (x) {
     return x;
 };
@@ -36685,7 +36685,7 @@ var mapForignEvent = function (fe) {
         if (eitherEventValueForign instanceof Data_Either.Right) {
             return new Data_Either.Right(eitherEventValueForign.value0);
         };
-        throw new Error("Failed pattern match at Main line 115, column 26 - line 117, column 28: " + [ eitherEventValueForign.constructor.name ]);
+        throw new Error("Failed pattern match at Main line 112, column 26 - line 114, column 28: " + [ eitherEventValueForign.constructor.name ]);
     })();
     return eitherEventValue;
 };
@@ -36707,74 +36707,8 @@ var makeRequest = function (dictRespondable) {
     return function (onError$prime) {
         return function (onSuccess$prime) {
             return function (url) {
-                return Control_Monad_Aff.runAff(onError$prime)(onSuccess$prime)(Network_HTTP_Affjax.get(dictRespondable)(url));
+                return Control_Monad_Aff.runAff(onError$prime)(onSuccess$prime)(Control_Monad_Aff.later(Network_HTTP_Affjax.get(dictRespondable)(url)));
             };
-        };
-    };
-};
-var updateAppState = function (ctx) {
-    return function (updateField) {
-        return function (e) {
-            return Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
-                var v = React.readState(ctx)();
-                var eitherNewEquationOrErrors = Data_Functor.map(Data_Either.functorEither)(updateField)(mapForignEvent(valueOf(e)));
-                var failedUpdate = function (v1) {
-                    return function __do() {
-                        React.writeState(ctx)({
-                            equation: v.equation, 
-                            errors: v1
-                        })();
-                        return Data_Unit.unit;
-                    };
-                };
-                var successRequest = function (v1) {
-                    return function (res) {
-                        var ne = (function () {
-                            var $42 = {};
-                            for (var $43 in v1) {
-                                if (v1.hasOwnProperty($43)) {
-                                    $42[$43] = v1[$43];
-                                };
-                            };
-                            $42.res = res;
-                            return $42;
-                        })();
-                        return function __do() {
-                            React.writeState(ctx)({
-                                equation: ne, 
-                                errors: [  ]
-                            })();
-                            return Data_Unit.unit;
-                        };
-                    };
-                };
-                var failedRequest = function (v1) {
-                    return function __do() {
-                        Control_Monad_Eff_Console.log(Data_Show.show(Control_Monad_Eff_Exception.showError)(v1))();
-                        React.writeState(ctx)({
-                            equation: v.equation, 
-                            errors: [ Control_Monad_Eff_Exception.message(v1) ]
-                        })();
-                        return Data_Unit.unit;
-                    };
-                };
-                var requestResult = function (v1) {
-                    return Data_Either.either(function (v2) {
-                        return function __do() {
-                            successRequest(v1)(v1.o1 + (v1.op + v1.o2))();
-                            return Data_Unit.unit;
-                        };
-                    })(function (v2) {
-                        return function __do() {
-                            makeRequest(Network_HTTP_Affjax_Response.responsableString)(failedRequest)(function (res) {
-                                return successRequest(v1)(res.response);
-                            })(v2)();
-                            return Data_Unit.unit;
-                        };
-                    })(makeUrl(v1.o1)(v1.op)(v1.o2));
-                };
-                return Data_Either.either(failedUpdate)(requestResult)(eitherNewEquationOrErrors)();
-            });
         };
     };
 };
@@ -36806,58 +36740,132 @@ var initialState = {
     equation: equation("")("")("")(""), 
     errors: [  ]
 };
+var validateEquation = function (v) {
+    return Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Data_Functor.map(Data_Validation_Semigroup.functorV)(equation)(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("first operand")(v.o1))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o1))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("operator")(v.op))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.op))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("second operand")(v.o2))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o2))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("result")(v.res))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.res)));
+};
+var validateEquation$prime = function (p) {
+    return Data_Validation_Semigroup.unV(Data_Either.Left.create)(Data_Either.Right.create)(validateEquation(p));
+};
+var updateAppState = function (ctx) {
+    return function (updateField) {
+        return function (e) {
+            return Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
+                var v = React.readState(ctx)();
+                var eitherNewEquationOrErrors = Control_Bind.bind(Data_Either.bindEither)(Data_Functor.map(Data_Either.functorEither)(updateField)(mapForignEvent(valueOf(e))))(validateEquation$prime);
+                var failedUpdate = function (v1) {
+                    return function __do() {
+                        Data_Traversable["for"](Control_Monad_Eff.applicativeEff)(Data_Traversable.traversableArray)(v1)(Control_Monad_Eff_Console.log)();
+                        React.writeState(ctx)({
+                            equation: v.equation, 
+                            errors: v1
+                        })();
+                        return Data_Unit.unit;
+                    };
+                };
+                var successRequest = function (v1) {
+                    return function (res) {
+                        var ne = (function () {
+                            var $46 = {};
+                            for (var $47 in v1) {
+                                if (v1.hasOwnProperty($47)) {
+                                    $46[$47] = v1[$47];
+                                };
+                            };
+                            $46.res = res;
+                            return $46;
+                        })();
+                        return function __do() {
+                            React.writeState(ctx)({
+                                equation: ne, 
+                                errors: [  ]
+                            })();
+                            return Data_Unit.unit;
+                        };
+                    };
+                };
+                var failedRequest = function (v1) {
+                    return function __do() {
+                        Control_Monad_Eff_Console.log(Data_Show.show(Control_Monad_Eff_Exception.showError)(v1))();
+                        React.writeState(ctx)({
+                            equation: v.equation, 
+                            errors: [ Control_Monad_Eff_Exception.message(v1) ]
+                        })();
+                        return Data_Unit.unit;
+                    };
+                };
+                var requestResult = function (v1) {
+                    return Data_Either.either(function (v2) {
+                        return function __do() {
+                            successRequest(v1)(v1.o1 + (v1.op + v1.o2))();
+                            return Data_Unit.unit;
+                        };
+                    })(function (v2) {
+                        return function __do() {
+                            successRequest(v1)(v1.o1 + (v1.op + v1.o2))();
+                            makeRequest(Network_HTTP_Affjax_Response.responsableString)(failedRequest)(function (res) {
+                                return successRequest(v1)(res.response);
+                            })(v2)();
+                            return Data_Unit.unit;
+                        };
+                    })(makeUrl(v1.o1)(v1.op)(v1.o2));
+                };
+                return Data_Either.either(failedUpdate)(requestResult)(eitherNewEquationOrErrors)();
+            });
+        };
+    };
+};
 var equationReactClass = React.createClass(React.spec(initialState)(function (ctx) {
     return function __do() {
         var v = React.readState(ctx)();
         var updateResult = function (s) {
             return Equation((function () {
-                var $58 = {};
-                for (var $59 in v.equation) {
-                    if (v.equation.hasOwnProperty($59)) {
-                        $58[$59] = v.equation[$59];
+                var $59 = {};
+                for (var $60 in v.equation) {
+                    if (v.equation.hasOwnProperty($60)) {
+                        $59[$60] = v.equation[$60];
                     };
                 };
-                $58.res = s + (v.equation.o1 + (v.equation.op + v.equation.o2));
-                return $58;
+                $59.res = s + (v.equation.o1 + (v.equation.op + v.equation.o2));
+                return $59;
             })());
         };
         var updateOperator = function (s) {
             return Equation((function () {
-                var $61 = {};
-                for (var $62 in v.equation) {
-                    if (v.equation.hasOwnProperty($62)) {
-                        $61[$62] = v.equation[$62];
+                var $62 = {};
+                for (var $63 in v.equation) {
+                    if (v.equation.hasOwnProperty($63)) {
+                        $62[$63] = v.equation[$63];
                     };
                 };
-                $61.op = s;
-                $61.res = v.equation.o1 + (s + v.equation.o2);
-                return $61;
+                $62.op = s;
+                $62.res = v.equation.o1 + (s + v.equation.o2);
+                return $62;
             })());
         };
         var updateOperandTwo = function (s) {
             return Equation((function () {
-                var $64 = {};
-                for (var $65 in v.equation) {
-                    if (v.equation.hasOwnProperty($65)) {
-                        $64[$65] = v.equation[$65];
+                var $65 = {};
+                for (var $66 in v.equation) {
+                    if (v.equation.hasOwnProperty($66)) {
+                        $65[$66] = v.equation[$66];
                     };
                 };
-                $64.o2 = s;
-                $64.res = v.equation.o1 + (v.equation.op + s);
-                return $64;
+                $65.o2 = s;
+                $65.res = v.equation.o1 + (v.equation.op + s);
+                return $65;
             })());
         };
         var updateOperandOne = function (s) {
             return Equation((function () {
-                var $67 = {};
-                for (var $68 in v.equation) {
-                    if (v.equation.hasOwnProperty($68)) {
-                        $67[$68] = v.equation[$68];
+                var $68 = {};
+                for (var $69 in v.equation) {
+                    if (v.equation.hasOwnProperty($69)) {
+                        $68[$69] = v.equation[$69];
                     };
                 };
-                $67.o1 = s;
-                $67.res = s + (v.equation.op + v.equation.o2);
-                return $67;
+                $68.o1 = s;
+                $68.res = s + (v.equation.op + v.equation.o2);
+                return $68;
             })());
         };
         var renderValidationError = function (err) {
@@ -36893,12 +36901,6 @@ var main = Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
         return Data_Maybe.fromJust(dictPartial);
     })(Data_Nullable.toMaybe(v1)))();
 });
-var validateEquation = function (v) {
-    return Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Data_Functor.map(Data_Validation_Semigroup.functorV)(equation)(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("first operand")(v.o1))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o1))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("operator")(v.op))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.op))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("second operand")(v.o2))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o2))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("result")(v.res))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.res)));
-};
-var validateEquation$prime = function (p) {
-    return Data_Validation_Semigroup.unV(Data_Either.Left.create)(Data_Either.Right.create)(validateEquation(p));
-};
 var calcEitherEquation = function (v) {
     if (v instanceof Data_Either.Left) {
         return v;
@@ -36911,7 +36913,7 @@ var calcEitherEquation = function (v) {
             if (v1 instanceof Data_Either.Right) {
                 return Data_Either.Right.create(equation(v.value0.o1)(v.value0.op)(v.value0.o2)(Data_Show.show(Data_Show.showInt)(v1.value0)));
             };
-            throw new Error("Failed pattern match at Main line 133, column 7 - line 133, column 38: " + [ v1.constructor.name ]);
+            throw new Error("Failed pattern match at Main line 130, column 7 - line 130, column 38: " + [ v1.constructor.name ]);
         };
         var calc = function (o1$prime) {
             return function (op$prime) {
@@ -36925,13 +36927,13 @@ var calcEitherEquation = function (v) {
                     if (mayBeResult instanceof Data_Maybe.Just) {
                         return new Data_Either.Right(mayBeResult.value0);
                     };
-                    throw new Error("Failed pattern match at Main line 129, column 13 - line 131, column 32: " + [ mayBeResult.constructor.name ]);
+                    throw new Error("Failed pattern match at Main line 126, column 13 - line 128, column 32: " + [ mayBeResult.constructor.name ]);
                 };
             };
         };
         return result(calc(v.value0.o1)(v.value0.op)(v.value0.o2));
     };
-    throw new Error("Failed pattern match at Main line 122, column 1 - line 122, column 44: " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at Main line 119, column 1 - line 119, column 44: " + [ v.constructor.name ]);
 };
 module.exports = {
     AppState: AppState, 
