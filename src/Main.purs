@@ -9,6 +9,7 @@ import Data.Int (fromString)
 import Data.Traversable (traverse)
 import Data.Validation.Semigroup (V, unV, invalid)
 import Partial.Unsafe (unsafePartial)
+import Data.Maybe (maybe)
 
 import Data.Show -- (Show)
 import Control.Monad.Eff (Eff)
@@ -143,15 +144,16 @@ makeRequest onError' onSuccess' url =
  
 makeUrl::String->String->String->Either Errors URL
 makeUrl o1 op o2 = 
-  Right $ "/calc/" <> o1 <> urlOp <> o2 
+--  Right $ "/calc/" <> o1 <> urlOp <> o2 
+  maybe (Left ["wrong format"]) (Right) maybeUrl
   where 
       urlOp = "/add/"
       maybeInt1::Maybe Int
       maybeInt1 = fromString o1
       maybeInt2::Maybe Int
       maybeInt2 = fromString o2
-      maybeInts::Maybe Unit
-      maybeInts = maybeInt1 >>= (\i1 -> maybeInt2) >>= (\i2 -> Just unit)
+      maybeUrl::Maybe URL
+      maybeUrl = maybeInt1 >>= (\i1 -> maybeInt2) >>= (\i2 -> Just $ "/calc/" <> o1 <> urlOp <> o2)
   
 updateAppState
   :: forall props eff
@@ -176,9 +178,14 @@ updateAppState ctx updateField e = void do
   let failedRequest (err::Error) =  do log $ show err
                                        writeState ctx (AppState { equation: oldEquation, errors: [message err] })
                                        pure unit
-  let requestResult eq@(Equation {o1:o1,o2:o2}) = do 
-                     makeRequest failedRequest (successRequest eq) $ "/calc/" <> o1 <> "/add/" <> o2
-                     pure unit
+  let requestResult eq@(Equation {o1:o1,op:op,o2:o2}) = do 
+                  either
+                     failedUpdate
+                     (\(url::URL) -> do 
+                         makeRequest failedRequest (successRequest eq) url
+                         pure unit) -- $ "/calc/" <> o1 <> "/add/" <> o2
+                     (makeUrl o1 op o2)
+                  -- pure unit
   either failedUpdate requestResult eitherNewEquationOrErrors
 
 equationReactClass :: forall props. ReactClass props
