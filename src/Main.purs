@@ -14,7 +14,7 @@ import Data.Show -- (Show)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Eff.Class (liftEff)
-import Control.Monad.Eff.Exception (Error, EXCEPTION)
+import Control.Monad.Eff.Exception (Error, EXCEPTION, message)
 import Control.Monad.Aff (Aff, Canceler, launchAff, runAff)
 import Data.Either (Either(..))
 import Data.HTTP.Method (Method(..))
@@ -140,6 +140,18 @@ makeRequest::forall res eff. (Respondable res) =>
  -> Eff (ajax :: AJAX | eff) (Canceler (ajax :: AJAX | eff))
 makeRequest onError' onSuccess' url = 
  runAff onError' onSuccess' $ get url
+ 
+makeUrl::String->String->String->Either Errors URL
+makeUrl o1 op o2 = 
+  Right $ "/calc/" <> o1 <> urlOp <> o2 
+  where 
+      urlOp = "/add/"
+      maybeInt1::Maybe Int
+      maybeInt1 = fromString o1
+      maybeInt2::Maybe Int
+      maybeInt2 = fromString o2
+      maybeInts::Maybe Unit
+      maybeInts = maybeInt1 >>= (\i1 -> maybeInt2) >>= (\i2 -> Just unit)
   
 updateAppState
   :: forall props eff
@@ -154,21 +166,19 @@ updateAppState
 updateAppState ctx updateField e = void do
   AppState {equation:oldEquation, errors} <- readState ctx
   let eitherNewEquationOrErrors = updateField <$> mapForignEvent (valueOf e)
-  let failedUpdate = (\lv -> do 
-                                writeState ctx (AppState { equation: oldEquation, errors: lv })
-                                pure unit)
-  let successRequest = (\eq res -> do 
+  let failedUpdate (errs::Errors) = do 
+                                      writeState ctx (AppState { equation: oldEquation, errors: errs })
+                                      pure unit
+  let successRequest (Equation eq) res = do 
                                  let ne = eq {res=res.response}
                                  writeState ctx (AppState { equation: Equation ne, errors: [] })
                                  pure unit
-                                 )
-  let failedRequest = (\lv -> do log "problem ajax"
-                                 writeState ctx (AppState { equation: oldEquation, errors: [show lv] })
-                                 pure unit
-                                 )
-  let requestResult = (\(Equation eq)-> do 
-                     makeRequest failedRequest (successRequest eq) $ "/calc/" <> eq.o1 <> "/add/" <> eq.o2
-                     pure unit)
+  let failedRequest (err::Error) =  do log $ show err
+                                       writeState ctx (AppState { equation: oldEquation, errors: [message err] })
+                                       pure unit
+  let requestResult eq@(Equation {o1:o1,o2:o2}) = do 
+                     makeRequest failedRequest (successRequest eq) $ "/calc/" <> o1 <> "/add/" <> o2
+                     pure unit
   either failedUpdate requestResult eitherNewEquationOrErrors
 
 equationReactClass :: forall props. ReactClass props
