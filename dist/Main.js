@@ -36626,6 +36626,31 @@ var Data_Eq = require("../Data.Eq");
 var Data_HeytingAlgebra = require("../Data.HeytingAlgebra");
 var Control_Apply = require("../Control.Apply");
 var Data_Functor = require("../Data.Functor");
+var SuccessOnInput = (function () {
+    function SuccessOnInput() {
+
+    };
+    SuccessOnInput.value = new SuccessOnInput();
+    return SuccessOnInput;
+})();
+var WarningOnInput = (function () {
+    function WarningOnInput(value0) {
+        this.value0 = value0;
+    };
+    WarningOnInput.create = function (value0) {
+        return new WarningOnInput(value0);
+    };
+    return WarningOnInput;
+})();
+var ErrorOnInput = (function () {
+    function ErrorOnInput(value0) {
+        this.value0 = value0;
+    };
+    ErrorOnInput.create = function (value0) {
+        return new ErrorOnInput(value0);
+    };
+    return ErrorOnInput;
+})();
 var Equation = function (x) {
     return x;
 };
@@ -36701,7 +36726,7 @@ var mapForignEventV = function (fe) {
         if (eitherEventValueForign instanceof Data_Either.Right) {
             return Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(eitherEventValueForign.value0);
         };
-        throw new Error("Failed pattern match at Main line 131, column 26 - line 133, column 27: " + [ eitherEventValueForign.constructor.name ]);
+        throw new Error("Failed pattern match at Main line 133, column 26 - line 135, column 27: " + [ eitherEventValueForign.constructor.name ]);
     })();
     return eitherEventValue;
 };
@@ -36757,14 +36782,14 @@ var initialState = {
     errors: [  ]
 };
 var nonEmptyEquation = function (v) {
-    var $51 = Data_String.length(v.o1) !== 0 && (Data_String.length(v.o2) !== 0 && Data_String.length(v.op) === 0);
-    if ($51) {
+    var $53 = Data_String.length(v.o1) !== 0 && (Data_String.length(v.o2) !== 0 && Data_String.length(v.op) === 0);
+    if ($53) {
         return Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Data_Validation_Semigroup.invalid([ "Operator cannot be empty" ]))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v));
     };
-    if (!$51) {
+    if (!$53) {
         return Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Data_Functor.map(Data_Validation_Semigroup.functorV)(equation)(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(matchesNumber("first operand")(v.o1))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o1))))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.op)))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(matchesNumber("second operand")(v.o2))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o2))))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.res));
     };
-    throw new Error("Failed pattern match at Main line 82, column 3 - line 89, column 28: " + [ $51.constructor.name ]);
+    throw new Error("Failed pattern match at Main line 84, column 3 - line 91, column 28: " + [ $53.constructor.name ]);
 };
 var validateEquation = function (v) {
     return nonEmptyEquation(v);
@@ -36795,14 +36820,14 @@ var updateAppStateV = function (ctx) {
                 var successRequest = function (v1) {
                     return function (res) {
                         var ne = (function () {
-                            var $62 = {};
-                            for (var $63 in v1) {
-                                if (v1.hasOwnProperty($63)) {
-                                    $62[$63] = v1[$63];
+                            var $64 = {};
+                            for (var $65 in v1) {
+                                if (v1.hasOwnProperty($65)) {
+                                    $64[$65] = v1[$65];
                                 };
                             };
-                            $62.res = res;
-                            return $62;
+                            $64.res = res;
+                            return $64;
                         })();
                         return function __do() {
                             React.writeState(ctx)({
@@ -36852,53 +36877,53 @@ var equationReactClass = React.createClass(React.spec(initialState)(function (ct
         var v = React.readState(ctx)();
         var updateResult = function (s) {
             return Equation((function () {
-                var $75 = {};
-                for (var $76 in v.equation) {
-                    if (v.equation.hasOwnProperty($76)) {
-                        $75[$76] = v.equation[$76];
+                var $77 = {};
+                for (var $78 in v.equation) {
+                    if (v.equation.hasOwnProperty($78)) {
+                        $77[$78] = v.equation[$78];
                     };
                 };
-                $75.res = s + (v.equation.o1 + (v.equation.op + v.equation.o2));
-                return $75;
+                $77.res = s + (v.equation.o1 + (v.equation.op + v.equation.o2));
+                return $77;
             })());
         };
         var updateOperator = function (s) {
             return Equation((function () {
-                var $78 = {};
-                for (var $79 in v.equation) {
-                    if (v.equation.hasOwnProperty($79)) {
-                        $78[$79] = v.equation[$79];
+                var $80 = {};
+                for (var $81 in v.equation) {
+                    if (v.equation.hasOwnProperty($81)) {
+                        $80[$81] = v.equation[$81];
                     };
                 };
-                $78.op = s;
-                $78.res = v.equation.o1 + (s + v.equation.o2);
-                return $78;
+                $80.op = s;
+                $80.res = v.equation.o1 + (s + v.equation.o2);
+                return $80;
             })());
         };
         var updateOperandTwo = function (s) {
             return Equation((function () {
-                var $81 = {};
-                for (var $82 in v.equation) {
-                    if (v.equation.hasOwnProperty($82)) {
-                        $81[$82] = v.equation[$82];
+                var $83 = {};
+                for (var $84 in v.equation) {
+                    if (v.equation.hasOwnProperty($84)) {
+                        $83[$84] = v.equation[$84];
                     };
                 };
-                $81.o2 = s;
-                $81.res = v.equation.o1 + (v.equation.op + s);
-                return $81;
+                $83.o2 = s;
+                $83.res = v.equation.o1 + (v.equation.op + s);
+                return $83;
             })());
         };
         var updateOperandOne = function (s) {
             return Equation((function () {
-                var $84 = {};
-                for (var $85 in v.equation) {
-                    if (v.equation.hasOwnProperty($85)) {
-                        $84[$85] = v.equation[$85];
+                var $86 = {};
+                for (var $87 in v.equation) {
+                    if (v.equation.hasOwnProperty($87)) {
+                        $86[$87] = v.equation[$87];
                     };
                 };
-                $84.o1 = s;
-                $84.res = s + (v.equation.op + v.equation.o2);
-                return $84;
+                $86.o1 = s;
+                $86.res = s + (v.equation.op + v.equation.o2);
+                return $86;
             })());
         };
         var renderValidationError = function (err) {
@@ -36910,11 +36935,37 @@ var equationReactClass = React.createClass(React.spec(initialState)(function (ct
             };
             return [ React_DOM.div([ React_DOM_Props.className("alert alert-danger") ])([ React_DOM["ul'"](Data_Functor.map(Data_Functor.functorArray)(renderValidationError)(v1)) ]) ];
         };
+        var elementsAtStattus = function (v1) {
+            if (v1 instanceof SuccessOnInput) {
+                return [  ];
+            };
+            if (v1 instanceof WarningOnInput) {
+                return [ React_DOM.span([ React_DOM_Props.className("help-block") ])([ React_DOM.text(v1.value0) ]) ];
+            };
+            if (v1 instanceof ErrorOnInput) {
+                return [ React_DOM.span([ React_DOM_Props.className("help-block") ])([ React_DOM.text(v1.value0) ]) ];
+            };
+            throw new Error("Failed pattern match at Main line 229, column 7 - line 229, column 44: " + [ v1.constructor.name ]);
+        };
+        var classesAtStatus = function (v1) {
+            if (v1 instanceof SuccessOnInput) {
+                return "";
+            };
+            if (v1 instanceof WarningOnInput) {
+                return "has-warning";
+            };
+            if (v1 instanceof ErrorOnInput) {
+                return "has-error";
+            };
+            throw new Error("Failed pattern match at Main line 224, column 7 - line 225, column 7: " + [ v1.constructor.name ]);
+        };
         var formField = function (name) {
             return function (hint) {
                 return function (value) {
                     return function (update) {
-                        return React_DOM.div([ React_DOM_Props.className("form-group has-error has-feedback") ])([ React_DOM.label([ React_DOM_Props.className("col-sm-2 control-label") ])([ React_DOM.text(name) ]), React_DOM.div([ React_DOM_Props.className("col-sm-3") ])([ React_DOM.input([ React_DOM_Props._type("text"), React_DOM_Props.className("form-control"), React_DOM_Props.placeholder(hint), React_DOM_Props.value(value), React_DOM_Props.onChange(updateAppStateV(ctx)(update)) ])([  ]), React_DOM.span([ React_DOM_Props.className("glyphicon glyphicon-remove form-control-feedback") ])([  ]), React_DOM.span([ React_DOM_Props._id("inputError2Status"), React_DOM_Props.className("help-block") ])([ React_DOM.text("(error)") ]) ]) ]);
+                        return function (status) {
+                            return React_DOM.div([ React_DOM_Props.className("form-group " + classesAtStatus(status)) ])([ React_DOM.label([ React_DOM_Props.className("col-sm-2 control-label") ])([ React_DOM.text(name) ]), React_DOM.div([ React_DOM_Props.className("col-sm-3") ])(Data_Array.concat([ [ React_DOM.input([ React_DOM_Props._type("text"), React_DOM_Props.className("form-control"), React_DOM_Props.placeholder(hint), React_DOM_Props.value(value), React_DOM_Props.onChange(updateAppStateV(ctx)(update)) ])([  ]) ], elementsAtStattus(status) ])) ]);
+                        };
                     };
                 };
             };
@@ -36922,7 +36973,7 @@ var equationReactClass = React.createClass(React.spec(initialState)(function (ct
         var calc = function (e) {
             return e.res;
         };
-        return React_DOM.div([ React_DOM_Props.className("container") ])([ React_DOM.div([ React_DOM_Props.className("row") ])(renderValidationErrors(v.errors)), React_DOM.div([ React_DOM_Props.className("row") ])([ React_DOM.form([ React_DOM_Props.className("form-horizontal") ])([ React_DOM["h3'"]([ React_DOM.text("Equation") ]), formField("operand 1")("operand 1")(v.equation.o1)(updateOperandOne), formField("operator")("operator")(v.equation.op)(updateOperator), formField("operand 2")("operand 2")(v.equation.o2)(updateOperandTwo), React_DOM.label([ React_DOM_Props.className("col-sm-2 control-label") ])([ React_DOM.text("result") ]), React_DOM.div([ React_DOM_Props.className("col-sm-3") ])([ React_DOM.text(calc(v.equation)) ]) ]) ]) ]);
+        return React_DOM.div([ React_DOM_Props.className("container") ])([ React_DOM.div([ React_DOM_Props.className("row") ])(renderValidationErrors(v.errors)), React_DOM.div([ React_DOM_Props.className("row") ])([ React_DOM.form([ React_DOM_Props.className("form-horizontal") ])([ React_DOM["h3'"]([ React_DOM.text("Equation") ]), formField("operand 1")("operand 1")(v.equation.o1)(updateOperandOne)(SuccessOnInput.value), formField("operator")("operator")(v.equation.op)(updateOperator)(new ErrorOnInput("(error)")), formField("operand 2")("operand 2")(v.equation.o2)(updateOperandTwo)(new WarningOnInput("(warning)")), React_DOM.label([ React_DOM_Props.className("col-sm-2 control-label") ])([ React_DOM.text("result") ]), React_DOM.div([ React_DOM_Props.className("col-sm-3") ])([ React_DOM.text(calc(v.equation)) ]) ]) ]) ]);
     };
 }));
 var main = Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
@@ -36937,6 +36988,9 @@ var main = Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
 module.exports = {
     AppState: AppState, 
     Equation: Equation, 
+    SuccessOnInput: SuccessOnInput, 
+    WarningOnInput: WarningOnInput, 
+    ErrorOnInput: ErrorOnInput, 
     equation: equation, 
     equationReactClass: equationReactClass, 
     initialState: initialState, 

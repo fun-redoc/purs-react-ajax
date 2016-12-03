@@ -29,7 +29,7 @@ import Network.HTTP.Affjax.Response -- (Respondable(..))
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Except (runExcept)
-import Data.Array  ((..), (:), length, modifyAt, zipWith) as Arr
+import Data.Array  ((..), (:),concat, length, modifyAt, zipWith) as Arr
 import Data.List.Types (toList)
 import Data.Either (Either(..), either)
 import Data.Foldable (for_, foldl)
@@ -44,11 +44,13 @@ import DOM.HTML.Window (document)
 import DOM.Node.NonElementParentNode (getElementById)
 import DOM.Node.Types (ElementId(..), documentToNonElementParentNode)
 import Partial.Unsafe (unsafePartial)
-import React (ReactClass, ReadWrite, ReactState, Event, ReactThis,
+import React (ReactElement, ReactClass, ReadWrite, ReactState, Event, ReactThis,
               createFactory, readState, spec, createClass, writeState)
 import React.DOM as D
 import React.DOM.Props as P
 import ReactDOM (render)
+
+data InputStatus = SuccessOnInput | WarningOnInput String | ErrorOnInput String
 
 newtype  Equation =  Equation {
   o1  :: String,
@@ -217,33 +219,45 @@ equationReactClass = createClass $ spec initialState \ctx -> do
         [ D.div [ P.className "alert alert-danger" ]
                 [ D.ul' (map renderValidationError xs) ]
         ]
-
-      formField name hint value update =
-        D.div [ P.className "form-group has-error has-feedback" ]
-              [ D.label [ P.className "col-sm-2 control-label" ]
-                        [ D.text name ]
-              , D.div [ P.className "col-sm-3" ]
-                      [ D.input [ P._type "text"
-                                , P.className "form-control"
-                                , P.placeholder hint
-                                , P.value value
-                                , P.onChange (updateAppStateV ctx update)
-                                ] []
-                      , D.span [ P.className "glyphicon glyphicon-remove form-control-feedback"] []
-                      , D.span [ P._id "inputError2Status", P.className "help-block"] [ D.text "(error)"]
-                      ]
+        
+      classesAtStatus::InputStatus->String
+      classesAtStatus SuccessOnInput = ""
+      classesAtStatus (WarningOnInput _) = "has-warning"
+      classesAtStatus (ErrorOnInput _) = "has-error"
+      
+      elementsAtStattus::InputStatus->Array ReactElement
+      elementsAtStattus SuccessOnInput = []
+      elementsAtStattus (WarningOnInput s) = 
+              [ 
+                D.span [ P.className "help-block"] [ D.text s]
+              ]
+      elementsAtStattus (ErrorOnInput s) = 
+              [ 
+                D.span [ P.className "help-block"] [ D.text s]
               ]
 
---       renderPhoneNumber (PhoneNumber phone) index =
---         formField (show phone."type") "XXX-XXX-XXXX" phone.number \s ->
---           Person $ person { phones = fromMaybe person.phones $ modifyAt index (updatePhoneNumber s) person.phones }
--- 
+      formField name hint value update status =
+        D.div [ P.className $ "form-group " <> (classesAtStatus status) ] 
+              [ D.label [ P.className "col-sm-2 control-label" ]
+                        [ D.text name ]
+              , D.div [ P.className "col-sm-3" ] $
+                      Arr.concat [[ D.input [ P._type "text"
+                                            , P.className "form-control"
+                                            , P.placeholder hint
+                                            , P.value value
+                                            , P.onChange (updateAppStateV ctx update)
+                                            ] []
+                                  ]
+                                  , (elementsAtStattus status)
+                                 ]
+              ]
+
       updateOperandOne s = Equation $ equat { o1 = s, res = s <> equat.op <> equat.o2  }
       updateOperandTwo s = Equation $ equat { o2 = s, res = equat.o1 <> equat.op <> s }
       updateOperator   s = Equation $ equat { op = s , res = equat.o1 <> s <> equat.o2 }
       updateResult     s = Equation $ equat { res = s <> equat.o1 <> equat.op <> equat.o2 }
       calc e = e.res -- e.o1 <> e.op <> e.o2
-
+      
   pure $
     D.div [ P.className "container" ]
           [ D.div [ P.className "row" ]
@@ -252,9 +266,9 @@ equationReactClass = createClass $ spec initialState \ctx -> do
                   [ D.form [ P.className "form-horizontal" ] $
                            [ D.h3' [ D.text "Equation" ]
 
-                           , formField "operand 1" "operand 1" equat.o1 updateOperandOne
-                           , formField "operator" "operator" equat.op updateOperator
-                           , formField "operand 2" "operand 2" equat.o2 updateOperandTwo
+                           , formField "operand 1" "operand 1" equat.o1 updateOperandOne SuccessOnInput
+                           , formField "operator" "operator" equat.op updateOperator $ ErrorOnInput "(error)"
+                           , formField "operand 2" "operand 2" equat.o2 updateOperandTwo $ WarningOnInput "(warning)"
                            , D.label [ P.className "col-sm-2 control-label" ]
                                  [D.text "result"]
                                , D.div [ P.className "col-sm-3" ] 
