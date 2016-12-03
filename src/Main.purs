@@ -11,6 +11,7 @@ import Data.Validation.Semigroup (V, unV, invalid)
 import Partial.Unsafe (unsafePartial)
 import Data.Maybe (maybe)
 import Data.Traversable (for)
+import Data.Bifunctor (lmap, rmap)
 
 import Data.Show -- (Show)
 import Control.Monad.Eff (Eff)
@@ -55,6 +56,9 @@ newtype  Equation =  Equation {
   o2  :: String,
   res :: String
 }
+instance showEquation::Show Equation where
+  show e@(Equation {o1:o1,op:op,o2:o2,res:res}) = 
+    o1 <> " " <> op <> " " <> o2 <> " " <> " = " <> res
 equation::String->String->String->String->Equation
 equation o1 op o2 res = Equation { o1:o1, op:op, o2:o2, res:res }
 
@@ -67,14 +71,23 @@ type Errors = Array String
 
 validateEquation :: Equation -> V Errors Equation
 validateEquation (Equation o) =
-  equation <$> (nonEmpty "first operand" o.o1 *> pure o.o1)
-           <*> (nonEmpty "operator"  o.op  *> pure o.op)
-           <*> (nonEmpty "second operand"  o.o2  *> pure o.o2)
-           <*> (nonEmpty "result"  o.res  *> pure o.res)
+  nonEmptyEquation (Equation o)
+--  equation <$> (nonEmpty "first operand" o.o1 *> pure o.o1)
+--           <*> (nonEmpty "operator"  o.op  *> pure o.op)
+--           <*> (nonEmpty "second operand"  o.o2  *> pure o.o2)
+--           <*> (nonEmpty "result"  o.res  *> pure o.res)
 
-validateEquation' :: Equation -> Either Errors Equation
-validateEquation' p = unV Left Right $ validateEquation p
-
+nonEmptyEquation::Equation -> V Errors Equation
+nonEmptyEquation eq@(Equation {o1:o1,op:op,o2:o2,res:res}) = 
+  if length o1 /= 0 && length o2 /= 0 && length op == 0 then
+    invalid ["Operator cannot be empty"] *> pure eq
+  else 
+    -- pure eq 
+    equation <$> (matchesNumber "first operand" o1 *> pure o1)
+             <*> (pure op)
+             <*> (matchesNumber "second operand" o2 *> pure o2)
+             <*> (pure res)
+    
 nonEmpty :: String -> String -> V Errors Unit
 nonEmpty field "" = invalid ["Field '" <> field <> "' cannot be empty"]
 nonEmpty _     _  = pure unit
@@ -83,9 +96,15 @@ lengthIs :: String -> Int -> String -> V Errors Unit
 lengthIs field len value | length value /= len = invalid ["Field '" <> field <> "' must have length " <> show len]
 lengthIs _     _   _     = pure unit
 
-matches :: String -> Regex -> String -> V Errors Unit
-matches _     regex value | test regex value = pure unit
+matches :: String -> Either String Regex -> String -> V Errors Unit
+matches _  (Right regex) value | test regex value = pure unit
+matches field (Right _)  _     = invalid ["Field '" <> field <> "' did not match the required format"]
+matches field (Left err) _     = invalid ["Field '" <> field <> "' error in format definition:" <> err]
 matches field _     _     = invalid ["Field '" <> field <> "' did not match the required format"]
+
+matchesNumber::String -> String -> V Errors Unit
+matchesNumber field value = 
+  matches field (regex """\d+""" noFlags) value
 
 newtype AppState = AppState
   { equation :: Equation
@@ -104,34 +123,17 @@ valueOf e = do
   value <- prop "value" target
   readString value
 
--- TODO make V of EIther
-mapForignEvent::F String -> Either Errors String
-mapForignEvent fe = 
+mapForignEventV::F String -> V Errors String
+mapForignEventV fe = 
   let eitherEventValueForign::Either MultipleErrors String
       eitherEventValueForign = runExcept fe
-      eitherEventValue::Either Errors String
+      eitherEventValue::V Errors String
       eitherEventValue = case eitherEventValueForign of
-         Left ls -> Left $ (toList >>> (foldl (\a v->(show v) Arr.: a) [])) ls
-         Right s -> Right s 
+         Left ls -> invalid $ (toList >>> (foldl (\a v->(show v) Arr.: a) [])) ls
+         Right s -> pure s 
   in eitherEventValue
   
   
--- calcEitherEquation::Either Errors Equation->Either Errors Equation
--- calcEitherEquation leftVal@Left _ = leftVal
--- calcEitherEquation rightVal@(Right (Equation {o1, op, o2, res})) = 
---   let calc::String->String->String->Either Errors Int 
---       calc o1' op' o2' = 
---         let maybeO1 = fromString o1'
---             maybeO2 = fromString o2'
---             mayBeResult = maybeOp op <*> maybeO1 <*> maybeO2
---          in case mayBeResult of
---               Nothing -> Left ["there is an error in the input"]
---               Just i -> Right i
---       result::Either Errors Int -> Either Errors Equation
---       result (Left errors) = rightVal
---       result (Right i)     = Right $ equation o1 op o2 $ show i
---    in result $ calc o1 op o2
-
 makeRequest::forall res eff. (Respondable res) => 
     (Error -> Eff ( ajax :: AJAX | eff ) Unit )  
  -> ({ status :: StatusCode, headers :: Array ResponseHeader, response :: res} -> Eff (ajax::AJAX | eff) Unit)  
@@ -140,11 +142,9 @@ makeRequest::forall res eff. (Respondable res) =>
 makeRequest onError' onSuccess' url = 
  runAff onError' onSuccess' $ later $ get url
  
--- TODO make V frrom Eitrhe
-makeUrl::String->String->String->Either Errors URL
-makeUrl o1 op o2 = 
---  Right $ "/calc/" <> o1 <> urlOp <> o2 
-  maybe (Left ["wrong format"]) (Right) maybeUrl
+makeUrlV::String->String->String->V Errors URL
+makeUrlV o1 op o2 = 
+  maybe (invalid ["wrong format"]) (pure) maybeUrl
   where 
       urlOp = "/add/"
       maybeInt1::Maybe Int
@@ -154,7 +154,8 @@ makeUrl o1 op o2 =
       maybeUrl::Maybe URL
       maybeUrl = maybeInt1 >>= (\i1 -> maybeInt2) >>= (\i2 -> Just $ "/calc/" <> o1 <> urlOp <> o2)
   
-updateAppState
+  
+updateAppStateV
   :: forall props eff
    . ReactThis props AppState
   -> (String -> Equation)
@@ -164,22 +165,34 @@ updateAppState
          , state :: ReactState ReadWrite
          | eff
          ) Unit
-updateAppState ctx updateField e = void do
--- make V from Either --->
+updateAppStateV ctx updateField e = void do
   AppState {equation:oldEquation, errors} <- readState ctx
-  let eitherNewEquationOrErrors = (updateField <$> mapForignEvent (valueOf e)) >>= validateEquation'
+  let vEvent::(V Errors String)
+      vEvent= mapForignEventV (valueOf e)
+  let vUpdatedEquationOrError::V Errors Equation
+      vUpdatedEquationOrError = updateField <$> vEvent
+  let updatedEquation::Equation
+      updatedEquation = unV (\_->oldEquation) (\e->e) vUpdatedEquationOrError
+  let vValidatedEquationOrErrors::V Errors Equation
+      vValidatedEquationOrErrors = validateEquation updatedEquation
   let failedUpdate (errs::Errors) = do  for errs log
-                                        writeState ctx (AppState { equation: oldEquation, errors: errs })
+                                        writeState ctx (AppState { equation: updatedEquation, errors: errs })
                                         pure unit
   let successRequest (Equation eq) res = do 
                                  let ne = eq {res=res}
                                  writeState ctx (AppState { equation: Equation ne, errors: [] })
                                  pure unit
   let failedRequest (err::Error) =  do log $ show err
-                                       writeState ctx (AppState { equation: oldEquation, errors: [message err] })
+                                       writeState ctx (AppState { equation: updatedEquation, errors: [message err] })
                                        pure unit
-  let requestResult eq@(Equation {o1:o1,op:op,o2:o2}) = do 
-                  either
+  let requestResult::Equation->Eff ( ajax::AJAX
+         , console :: CONSOLE
+         , state :: ReactState ReadWrite
+         | eff
+         ) Unit
+      requestResult eq@(Equation {o1:o1,op:op,o2:o2}) = do 
+                  log $ show eq
+                  unV
                      (\_ -> do 
                          successRequest eq $ o1 <> op <> o2
                          pure unit)
@@ -188,10 +201,10 @@ updateAppState ctx updateField e = void do
                          successRequest eq $ o1 <> op <> o2
                          -- asyncronously comoute the result
                          makeRequest failedRequest (\res -> successRequest eq res.response) url
-                         pure unit) -- $ "/calc/" <> o1 <> "/add/" <> o2
-                     (makeUrl o1 op o2)
+                         pure unit)
+                     (makeUrlV o1 op o2)
                   -- pure unit
-  either failedUpdate requestResult eitherNewEquationOrErrors
+  unV failedUpdate requestResult vValidatedEquationOrErrors
   
 equationReactClass :: forall props. ReactClass props
 equationReactClass = createClass $ spec initialState \ctx -> do
@@ -214,7 +227,7 @@ equationReactClass = createClass $ spec initialState \ctx -> do
                                 , P.className "form-control"
                                 , P.placeholder hint
                                 , P.value value
-                                , P.onChange (updateAppState ctx update)
+                                , P.onChange (updateAppStateV ctx update)
                                 ] []
                       ]
               ]

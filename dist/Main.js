@@ -36583,6 +36583,7 @@ var Data_Traversable = require("../Data.Traversable");
 var Data_Validation_Semigroup = require("../Data.Validation.Semigroup");
 var Partial_Unsafe = require("../Partial.Unsafe");
 var Data_Maybe = require("../Data.Maybe");
+var Data_Bifunctor = require("../Data.Bifunctor");
 var Data_Show = require("../Data.Show");
 var Control_Monad_Eff = require("../Control.Monad.Eff");
 var Control_Monad_Eff_Console = require("../Control.Monad.Eff.Console");
@@ -36612,16 +36613,17 @@ var React = require("../React");
 var React_DOM = require("../React.DOM");
 var React_DOM_Props = require("../React.DOM.Props");
 var ReactDOM = require("../ReactDOM");
+var Data_Semigroup = require("../Data.Semigroup");
 var Control_Bind = require("../Control.Bind");
 var Control_Monad_Except_Trans = require("../Control.Monad.Except.Trans");
 var Data_Identity = require("../Data.Identity");
-var Data_Semigroup = require("../Data.Semigroup");
 var Control_Applicative = require("../Control.Applicative");
 var Data_Unit = require("../Data.Unit");
 var Data_Semiring = require("../Data.Semiring");
 var Data_Function = require("../Data.Function");
 var Control_Semigroupoid = require("../Control.Semigroupoid");
 var Data_Eq = require("../Data.Eq");
+var Data_HeytingAlgebra = require("../Data.HeytingAlgebra");
 var Control_Apply = require("../Control.Apply");
 var Data_Functor = require("../Data.Functor");
 var Equation = function (x) {
@@ -36637,6 +36639,9 @@ var valueOf = function (e) {
         });
     });
 };
+var showEquation = new Data_Show.Show(function (v) {
+    return v.o1 + (" " + (v.op + (" " + (v.o2 + (" " + (" = " + v.res))))));
+});
 var nonEmpty = function (v) {
     return function (v1) {
         if (v1 === "") {
@@ -36665,31 +36670,42 @@ var maybeOp = function (v) {
 var matches = function (v) {
     return function (v1) {
         return function (v2) {
-            if (Data_String_Regex.test(v1)(v2)) {
+            if (v1 instanceof Data_Either.Right && Data_String_Regex.test(v1.value0)(v2)) {
                 return Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(Data_Unit.unit);
+            };
+            if (v1 instanceof Data_Either.Right) {
+                return Data_Validation_Semigroup.invalid([ "Field '" + (v + "' did not match the required format") ]);
+            };
+            if (v1 instanceof Data_Either.Left) {
+                return Data_Validation_Semigroup.invalid([ "Field '" + (v + ("' error in format definition:" + v1.value0)) ]);
             };
             return Data_Validation_Semigroup.invalid([ "Field '" + (v + "' did not match the required format") ]);
         };
     };
 };
-var mapForignEvent = function (fe) {
+var matchesNumber = function (field) {
+    return function (value) {
+        return matches(field)(Data_String_Regex.regex("\\d+")(Data_String_Regex_Flags.noFlags))(value);
+    };
+};
+var mapForignEventV = function (fe) {
     var eitherEventValueForign = Control_Monad_Except.runExcept(fe);
     var eitherEventValue = (function () {
         if (eitherEventValueForign instanceof Data_Either.Left) {
-            return Data_Either.Left.create(Data_Foldable.foldl(Data_List_Types.foldableList)(function (a) {
+            return Data_Validation_Semigroup.invalid(Data_Foldable.foldl(Data_List_Types.foldableList)(function (a) {
                 return function (v) {
                     return Data_Array.cons(Data_Show.show(Data_Foreign.showForeignError)(v))(a);
                 };
             })([  ])(Data_List_Types.toList(eitherEventValueForign.value0)));
         };
         if (eitherEventValueForign instanceof Data_Either.Right) {
-            return new Data_Either.Right(eitherEventValueForign.value0);
+            return Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(eitherEventValueForign.value0);
         };
-        throw new Error("Failed pattern match at Main line 112, column 26 - line 114, column 28: " + [ eitherEventValueForign.constructor.name ]);
+        throw new Error("Failed pattern match at Main line 131, column 26 - line 133, column 27: " + [ eitherEventValueForign.constructor.name ]);
     })();
     return eitherEventValue;
 };
-var makeUrl = function (o1) {
+var makeUrlV = function (o1) {
     return function (op) {
         return function (o2) {
             var maybeInt2 = Data_Int.fromString(o2);
@@ -36699,7 +36715,7 @@ var makeUrl = function (o1) {
             }))(function (i2) {
                 return Data_Maybe.Just.create("/calc/" + (o1 + ("/add/" + o2)));
             });
-            return Data_Maybe.maybe(new Data_Either.Left([ "wrong format" ]))(Data_Either.Right.create)(maybeUrl);
+            return Data_Maybe.maybe(Data_Validation_Semigroup.invalid([ "wrong format" ]))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray)))(maybeUrl);
         };
     };
 };
@@ -36740,23 +36756,37 @@ var initialState = {
     equation: equation("")("")("")(""), 
     errors: [  ]
 };
+var nonEmptyEquation = function (v) {
+    var $51 = Data_String.length(v.o1) !== 0 && (Data_String.length(v.o2) !== 0 && Data_String.length(v.op) === 0);
+    if ($51) {
+        return Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Data_Validation_Semigroup.invalid([ "Operator cannot be empty" ]))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v));
+    };
+    if (!$51) {
+        return Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Data_Functor.map(Data_Validation_Semigroup.functorV)(equation)(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(matchesNumber("first operand")(v.o1))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o1))))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.op)))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(matchesNumber("second operand")(v.o2))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o2))))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.res));
+    };
+    throw new Error("Failed pattern match at Main line 82, column 3 - line 89, column 28: " + [ $51.constructor.name ]);
+};
 var validateEquation = function (v) {
-    return Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Control_Apply.apply(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(Data_Functor.map(Data_Validation_Semigroup.functorV)(equation)(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("first operand")(v.o1))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o1))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("operator")(v.op))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.op))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("second operand")(v.o2))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.o2))))(Control_Apply.applySecond(Data_Validation_Semigroup.applyV(Data_Semigroup.semigroupArray))(nonEmpty("result")(v.res))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray))(v.res)));
+    return nonEmptyEquation(v);
 };
-var validateEquation$prime = function (p) {
-    return Data_Validation_Semigroup.unV(Data_Either.Left.create)(Data_Either.Right.create)(validateEquation(p));
-};
-var updateAppState = function (ctx) {
+var updateAppStateV = function (ctx) {
     return function (updateField) {
         return function (e) {
             return Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
                 var v = React.readState(ctx)();
-                var eitherNewEquationOrErrors = Control_Bind.bind(Data_Either.bindEither)(Data_Functor.map(Data_Either.functorEither)(updateField)(mapForignEvent(valueOf(e))))(validateEquation$prime);
+                var vEvent = mapForignEventV(valueOf(e));
+                var vUpdatedEquationOrError = Data_Functor.map(Data_Validation_Semigroup.functorV)(updateField)(vEvent);
+                var updatedEquation = Data_Validation_Semigroup.unV(function (v1) {
+                    return v.equation;
+                })(function (e1) {
+                    return e1;
+                })(vUpdatedEquationOrError);
+                var vValidatedEquationOrErrors = validateEquation(updatedEquation);
                 var failedUpdate = function (v1) {
                     return function __do() {
                         Data_Traversable["for"](Control_Monad_Eff.applicativeEff)(Data_Traversable.traversableArray)(v1)(Control_Monad_Eff_Console.log)();
                         React.writeState(ctx)({
-                            equation: v.equation, 
+                            equation: updatedEquation, 
                             errors: v1
                         })();
                         return Data_Unit.unit;
@@ -36765,14 +36795,14 @@ var updateAppState = function (ctx) {
                 var successRequest = function (v1) {
                     return function (res) {
                         var ne = (function () {
-                            var $46 = {};
-                            for (var $47 in v1) {
-                                if (v1.hasOwnProperty($47)) {
-                                    $46[$47] = v1[$47];
+                            var $62 = {};
+                            for (var $63 in v1) {
+                                if (v1.hasOwnProperty($63)) {
+                                    $62[$63] = v1[$63];
                                 };
                             };
-                            $46.res = res;
-                            return $46;
+                            $62.res = res;
+                            return $62;
                         })();
                         return function __do() {
                             React.writeState(ctx)({
@@ -36787,29 +36817,32 @@ var updateAppState = function (ctx) {
                     return function __do() {
                         Control_Monad_Eff_Console.log(Data_Show.show(Control_Monad_Eff_Exception.showError)(v1))();
                         React.writeState(ctx)({
-                            equation: v.equation, 
+                            equation: updatedEquation, 
                             errors: [ Control_Monad_Eff_Exception.message(v1) ]
                         })();
                         return Data_Unit.unit;
                     };
                 };
                 var requestResult = function (v1) {
-                    return Data_Either.either(function (v2) {
-                        return function __do() {
-                            successRequest(v1)(v1.o1 + (v1.op + v1.o2))();
-                            return Data_Unit.unit;
-                        };
-                    })(function (v2) {
-                        return function __do() {
-                            successRequest(v1)(v1.o1 + (v1.op + v1.o2))();
-                            makeRequest(Network_HTTP_Affjax_Response.responsableString)(failedRequest)(function (res) {
-                                return successRequest(v1)(res.response);
-                            })(v2)();
-                            return Data_Unit.unit;
-                        };
-                    })(makeUrl(v1.o1)(v1.op)(v1.o2));
+                    return function __do() {
+                        Control_Monad_Eff_Console.log(Data_Show.show(showEquation)(v1))();
+                        return Data_Validation_Semigroup.unV(function (v2) {
+                            return function __do() {
+                                successRequest(v1)(v1.o1 + (v1.op + v1.o2))();
+                                return Data_Unit.unit;
+                            };
+                        })(function (v2) {
+                            return function __do() {
+                                successRequest(v1)(v1.o1 + (v1.op + v1.o2))();
+                                makeRequest(Network_HTTP_Affjax_Response.responsableString)(failedRequest)(function (res) {
+                                    return successRequest(v1)(res.response);
+                                })(v2)();
+                                return Data_Unit.unit;
+                            };
+                        })(makeUrlV(v1.o1)(v1.op)(v1.o2))();
+                    };
                 };
-                return Data_Either.either(failedUpdate)(requestResult)(eitherNewEquationOrErrors)();
+                return Data_Validation_Semigroup.unV(failedUpdate)(requestResult)(vValidatedEquationOrErrors)();
             });
         };
     };
@@ -36819,53 +36852,53 @@ var equationReactClass = React.createClass(React.spec(initialState)(function (ct
         var v = React.readState(ctx)();
         var updateResult = function (s) {
             return Equation((function () {
-                var $59 = {};
-                for (var $60 in v.equation) {
-                    if (v.equation.hasOwnProperty($60)) {
-                        $59[$60] = v.equation[$60];
+                var $75 = {};
+                for (var $76 in v.equation) {
+                    if (v.equation.hasOwnProperty($76)) {
+                        $75[$76] = v.equation[$76];
                     };
                 };
-                $59.res = s + (v.equation.o1 + (v.equation.op + v.equation.o2));
-                return $59;
+                $75.res = s + (v.equation.o1 + (v.equation.op + v.equation.o2));
+                return $75;
             })());
         };
         var updateOperator = function (s) {
             return Equation((function () {
-                var $62 = {};
-                for (var $63 in v.equation) {
-                    if (v.equation.hasOwnProperty($63)) {
-                        $62[$63] = v.equation[$63];
+                var $78 = {};
+                for (var $79 in v.equation) {
+                    if (v.equation.hasOwnProperty($79)) {
+                        $78[$79] = v.equation[$79];
                     };
                 };
-                $62.op = s;
-                $62.res = v.equation.o1 + (s + v.equation.o2);
-                return $62;
+                $78.op = s;
+                $78.res = v.equation.o1 + (s + v.equation.o2);
+                return $78;
             })());
         };
         var updateOperandTwo = function (s) {
             return Equation((function () {
-                var $65 = {};
-                for (var $66 in v.equation) {
-                    if (v.equation.hasOwnProperty($66)) {
-                        $65[$66] = v.equation[$66];
+                var $81 = {};
+                for (var $82 in v.equation) {
+                    if (v.equation.hasOwnProperty($82)) {
+                        $81[$82] = v.equation[$82];
                     };
                 };
-                $65.o2 = s;
-                $65.res = v.equation.o1 + (v.equation.op + s);
-                return $65;
+                $81.o2 = s;
+                $81.res = v.equation.o1 + (v.equation.op + s);
+                return $81;
             })());
         };
         var updateOperandOne = function (s) {
             return Equation((function () {
-                var $68 = {};
-                for (var $69 in v.equation) {
-                    if (v.equation.hasOwnProperty($69)) {
-                        $68[$69] = v.equation[$69];
+                var $84 = {};
+                for (var $85 in v.equation) {
+                    if (v.equation.hasOwnProperty($85)) {
+                        $84[$85] = v.equation[$85];
                     };
                 };
-                $68.o1 = s;
-                $68.res = s + (v.equation.op + v.equation.o2);
-                return $68;
+                $84.o1 = s;
+                $84.res = s + (v.equation.op + v.equation.o2);
+                return $84;
             })());
         };
         var renderValidationError = function (err) {
@@ -36881,7 +36914,7 @@ var equationReactClass = React.createClass(React.spec(initialState)(function (ct
             return function (hint) {
                 return function (value) {
                     return function (update) {
-                        return React_DOM.div([ React_DOM_Props.className("form-group") ])([ React_DOM.label([ React_DOM_Props.className("col-sm-2 control-label") ])([ React_DOM.text(name) ]), React_DOM.div([ React_DOM_Props.className("col-sm-3") ])([ React_DOM.input([ React_DOM_Props._type("text"), React_DOM_Props.className("form-control"), React_DOM_Props.placeholder(hint), React_DOM_Props.value(value), React_DOM_Props.onChange(updateAppState(ctx)(update)) ])([  ]) ]) ]);
+                        return React_DOM.div([ React_DOM_Props.className("form-group") ])([ React_DOM.label([ React_DOM_Props.className("col-sm-2 control-label") ])([ React_DOM.text(name) ]), React_DOM.div([ React_DOM_Props.className("col-sm-3") ])([ React_DOM.input([ React_DOM_Props._type("text"), React_DOM_Props.className("form-control"), React_DOM_Props.placeholder(hint), React_DOM_Props.value(value), React_DOM_Props.onChange(updateAppStateV(ctx)(update)) ])([  ]) ]) ]);
                     };
                 };
             };
@@ -36901,62 +36934,29 @@ var main = Data_Functor["void"](Control_Monad_Eff.functorEff)(function __do() {
         return Data_Maybe.fromJust(dictPartial);
     })(Data_Nullable.toMaybe(v1)))();
 });
-var calcEitherEquation = function (v) {
-    if (v instanceof Data_Either.Left) {
-        return v;
-    };
-    if (v instanceof Data_Either.Right) {
-        var result = function (v1) {
-            if (v1 instanceof Data_Either.Left) {
-                return v;
-            };
-            if (v1 instanceof Data_Either.Right) {
-                return Data_Either.Right.create(equation(v.value0.o1)(v.value0.op)(v.value0.o2)(Data_Show.show(Data_Show.showInt)(v1.value0)));
-            };
-            throw new Error("Failed pattern match at Main line 130, column 7 - line 130, column 38: " + [ v1.constructor.name ]);
-        };
-        var calc = function (o1$prime) {
-            return function (op$prime) {
-                return function (o2$prime) {
-                    var maybeO2 = Data_Int.fromString(o2$prime);
-                    var maybeO1 = Data_Int.fromString(o1$prime);
-                    var mayBeResult = Control_Apply.apply(Data_Maybe.applyMaybe)(Control_Apply.apply(Data_Maybe.applyMaybe)(maybeOp(v.value0.op))(maybeO1))(maybeO2);
-                    if (mayBeResult instanceof Data_Maybe.Nothing) {
-                        return new Data_Either.Left([ "there is an error in the input" ]);
-                    };
-                    if (mayBeResult instanceof Data_Maybe.Just) {
-                        return new Data_Either.Right(mayBeResult.value0);
-                    };
-                    throw new Error("Failed pattern match at Main line 126, column 13 - line 128, column 32: " + [ mayBeResult.constructor.name ]);
-                };
-            };
-        };
-        return result(calc(v.value0.o1)(v.value0.op)(v.value0.o2));
-    };
-    throw new Error("Failed pattern match at Main line 119, column 1 - line 119, column 44: " + [ v.constructor.name ]);
-};
 module.exports = {
     AppState: AppState, 
     Equation: Equation, 
-    calcEitherEquation: calcEitherEquation, 
     equation: equation, 
     equationReactClass: equationReactClass, 
     initialState: initialState, 
     lengthIs: lengthIs, 
     main: main, 
     makeRequest: makeRequest, 
-    makeUrl: makeUrl, 
-    mapForignEvent: mapForignEvent, 
+    makeUrlV: makeUrlV, 
+    mapForignEventV: mapForignEventV, 
     matches: matches, 
+    matchesNumber: matchesNumber, 
     maybeOp: maybeOp, 
     nonEmpty: nonEmpty, 
-    updateAppState: updateAppState, 
+    nonEmptyEquation: nonEmptyEquation, 
+    updateAppStateV: updateAppStateV, 
     validateEquation: validateEquation, 
-    "validateEquation'": validateEquation$prime, 
-    valueOf: valueOf
+    valueOf: valueOf, 
+    showEquation: showEquation
 };
 
-},{"../Control.Applicative":162,"../Control.Apply":164,"../Control.Bind":168,"../Control.Monad.Aff":177,"../Control.Monad.Eff":190,"../Control.Monad.Eff.Class":180,"../Control.Monad.Eff.Console":182,"../Control.Monad.Eff.Exception":184,"../Control.Monad.Except":193,"../Control.Monad.Except.Trans":192,"../Control.Semigroupoid":210,"../DOM":224,"../DOM.HTML":219,"../DOM.HTML.Types":215,"../DOM.HTML.Window":217,"../DOM.Node.NonElementParentNode":221,"../DOM.Node.Types":222,"../Data.Array":228,"../Data.Either":239,"../Data.Eq":241,"../Data.Foldable":246,"../Data.Foreign":256,"../Data.Foreign.Index":249,"../Data.Function":262,"../Data.Functor":266,"../Data.HTTP.Method":269,"../Data.Identity":272,"../Data.Int":276,"../Data.List.Types":278,"../Data.Maybe":282,"../Data.Nullable":296,"../Data.Semigroup":305,"../Data.Semiring":307,"../Data.Show":309,"../Data.String":320,"../Data.String.Regex":316,"../Data.String.Regex.Flags":314,"../Data.Traversable":322,"../Data.Unit":327,"../Data.Validation.Semigroup":328,"../Network.HTTP.Affjax":338,"../Network.HTTP.Affjax.Response":336,"../Network.HTTP.ResponseHeader":340,"../Network.HTTP.StatusCode":341,"../Partial.Unsafe":343,"../Prelude":346,"../React":351,"../React.DOM":349,"../React.DOM.Props":348,"../ReactDOM":353}],333:[function(require,module,exports){
+},{"../Control.Applicative":162,"../Control.Apply":164,"../Control.Bind":168,"../Control.Monad.Aff":177,"../Control.Monad.Eff":190,"../Control.Monad.Eff.Class":180,"../Control.Monad.Eff.Console":182,"../Control.Monad.Eff.Exception":184,"../Control.Monad.Except":193,"../Control.Monad.Except.Trans":192,"../Control.Semigroupoid":210,"../DOM":224,"../DOM.HTML":219,"../DOM.HTML.Types":215,"../DOM.HTML.Window":217,"../DOM.Node.NonElementParentNode":221,"../DOM.Node.Types":222,"../Data.Array":228,"../Data.Bifunctor":231,"../Data.Either":239,"../Data.Eq":241,"../Data.Foldable":246,"../Data.Foreign":256,"../Data.Foreign.Index":249,"../Data.Function":262,"../Data.Functor":266,"../Data.HTTP.Method":269,"../Data.HeytingAlgebra":271,"../Data.Identity":272,"../Data.Int":276,"../Data.List.Types":278,"../Data.Maybe":282,"../Data.Nullable":296,"../Data.Semigroup":305,"../Data.Semiring":307,"../Data.Show":309,"../Data.String":320,"../Data.String.Regex":316,"../Data.String.Regex.Flags":314,"../Data.Traversable":322,"../Data.Unit":327,"../Data.Validation.Semigroup":328,"../Network.HTTP.Affjax":338,"../Network.HTTP.Affjax.Response":336,"../Network.HTTP.ResponseHeader":340,"../Network.HTTP.StatusCode":341,"../Partial.Unsafe":343,"../Prelude":346,"../React":351,"../React.DOM":349,"../React.DOM.Props":348,"../ReactDOM":353}],333:[function(require,module,exports){
 "use strict";
 
 // module Math
