@@ -219,7 +219,7 @@ equationReactClass = createClass $ spec initialState \ctx -> do
         ]
 
       formField name hint value update =
-        D.div [ P.className "form-group" ]
+        D.div [ P.className "form-group has-error has-feedback" ]
               [ D.label [ P.className "col-sm-2 control-label" ]
                         [ D.text name ]
               , D.div [ P.className "col-sm-3" ]
@@ -229,6 +229,8 @@ equationReactClass = createClass $ spec initialState \ctx -> do
                                 , P.value value
                                 , P.onChange (updateAppStateV ctx update)
                                 ] []
+                      , D.span [ P.className "glyphicon glyphicon-remove form-control-feedback"] []
+                      , D.span [ P._id "inputError2Status", P.className "help-block"] [ D.text "(error)"]
                       ]
               ]
 

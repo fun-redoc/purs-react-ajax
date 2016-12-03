@@ -36914,7 +36914,7 @@ var equationReactClass = React.createClass(React.spec(initialState)(function (ct
             return function (hint) {
                 return function (value) {
                     return function (update) {
-                        return React_DOM.div([ React_DOM_Props.className("form-group") ])([ React_DOM.label([ React_DOM_Props.className("col-sm-2 control-label") ])([ React_DOM.text(name) ]), React_DOM.div([ React_DOM_Props.className("col-sm-3") ])([ React_DOM.input([ React_DOM_Props._type("text"), React_DOM_Props.className("form-control"), React_DOM_Props.placeholder(hint), React_DOM_Props.value(value), React_DOM_Props.onChange(updateAppStateV(ctx)(update)) ])([  ]) ]) ]);
+                        return React_DOM.div([ React_DOM_Props.className("form-group has-error has-feedback") ])([ React_DOM.label([ React_DOM_Props.className("col-sm-2 control-label") ])([ React_DOM.text(name) ]), React_DOM.div([ React_DOM_Props.className("col-sm-3") ])([ React_DOM.input([ React_DOM_Props._type("text"), React_DOM_Props.className("form-control"), React_DOM_Props.placeholder(hint), React_DOM_Props.value(value), React_DOM_Props.onChange(updateAppStateV(ctx)(update)) ])([  ]), React_DOM.span([ React_DOM_Props.className("glyphicon glyphicon-remove form-control-feedback") ])([  ]), React_DOM.span([ React_DOM_Props._id("inputError2Status"), React_DOM_Props.className("help-block") ])([ React_DOM.text("(error)") ]) ]) ]);
                     };
                 };
             };
