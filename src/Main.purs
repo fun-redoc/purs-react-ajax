@@ -1,43 +1,32 @@
 module Main where
 
-import Prelude
+import Prelude (class Show, Unit, bind, unit, void, pure, map, show, (>>=), ($), (<>), (<$>), (>>>))
 
-import Data.String (length)
+-- import Data.String (length)
 import Data.String.Regex (Regex, test, regex)
 import Data.String.Regex.Flags (noFlags)
 import Data.Int (fromString)
-import Data.Traversable (traverse)
-import Data.Validation.Semigroup (V, unV, invalid)
-import Partial.Unsafe (unsafePartial)
-import Data.Maybe (maybe)
 import Data.Traversable (for)
-import Data.Bifunctor (lmap, rmap)
-import Data.Tuple (Tuple(..), fst,snd)
+import Data.Validation.Semigroup (V, unV, invalid)
+import Data.Maybe (Maybe(Just), fromJust, maybe)
+import Data.Either (Either(Right, Left))
 import Data.Array ((:))
 
-import Data.Show -- (Show)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
-import Control.Monad.Eff.Class (liftEff)
-import Control.Monad.Eff.Exception (Error, EXCEPTION, message)
-import Control.Monad.Aff (Aff, Canceler, launchAff, runAff, later)
-import Data.Either (Either(..))
-import Data.HTTP.Method (Method(..))
-import Network.HTTP.Affjax (AffjaxResponse, AJAX, URL, get, defaultRequest, affjax)
+import Control.Monad.Eff.Exception (Error)
+import Control.Monad.Aff (Canceler, later, runAff)
+import Network.HTTP.Affjax (URL, AJAX, get)
 import Network.HTTP.StatusCode (StatusCode)
 import Network.HTTP.ResponseHeader (ResponseHeader)
-import Network.HTTP.Affjax.Response -- (Respondable(..))
+import Network.HTTP.Affjax.Response (class Respondable)
 
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Except (runExcept)
-import Data.Array  ((..), (:),concat, length, modifyAt, zipWith) as Arr
+import Data.Array (concat, (:)) as Arr
 import Data.List.Types (toList)
-import Data.Either (Either(..), either)
-import Data.Foldable (for_, foldl)
+import Data.Foldable (foldl)
 import Data.Foreign (F, MultipleErrors, readString, toForeign)
 import Data.Foreign.Index (prop)
-import Data.Maybe (Maybe(..), fromJust, fromMaybe)
 import Data.Nullable (toMaybe)
 import DOM (DOM())
 import DOM.HTML (window)
@@ -76,13 +65,13 @@ newtype  EquationValidationStatus =  EquationValidationStatus {
   op  :: InputStatus,
   o2  :: InputStatus
 }
+equationValidationStatus::InputStatus->InputStatus->InputStatus->EquationValidationStatus
+equationValidationStatus o1 op o2 = EquationValidationStatus { o1:o1, op:op, o2:o2 }
 instance showEquationValidationStatus::Show EquationValidationStatus where
   show e@(EquationValidationStatus {o1:o1,op:op,o2:o2}) = 
     show o1 <> "\n" <> show op <> "\n" <> show o2 <> "\n"
-equationValidationStatus::InputStatus->InputStatus->InputStatus->EquationValidationStatus
-equationValidationStatus o1 op o2 = EquationValidationStatus { o1:o1, op:op, o2:o2 }
 
-validateEquation :: Equation -> EquationValidationStatus
+validateEquation :: Equation -> EquationValidationStatus 
 validateEquation eq@(Equation {o1:o1,op:op,o2:o2,res:res}) = 
     equationValidationStatus (matchesNumber "first operand" o1) (nonEmpty "operatoer" op) (matchesNumber "second operand" o2)
     
@@ -165,7 +154,7 @@ updateAppStateV
          | eff
          ) Unit
 updateAppStateV ctx updateField e = void do
-  AppState {equation:oldEquation, equationValidationStatus:equationValidationStatus, errors} <- readState ctx
+  AppState {equation:oldEquation, equationValidationStatus:oldEquationValidationStatus, errors} <- readState ctx
   let vEvent::(V Errors String)
       vEvent= mapForignEventV (valueOf e)
   let vUpdatedEquationOrError::V Errors Equation
@@ -196,13 +185,12 @@ updateAppStateV ctx updateField e = void do
                          log "input valid for request"
                          -- first output the raw equation
                          updateAppState (Equation {o1:o1,op:op,o2:o2,res:o1 <> op <> o2}) eqerrs errs
-                         -- asyncronously comoute the result
+                         -- asyncronously compute the result
                          makeRequest (\error->do
                                          log "request wirh error"
                                          updateAppState (Equation {o1:o1,op:op,o2:o2,res:o1 <> op <> o2}) eqerrs (show error : otherErrors)) 
                                      (\res ->do
                                          log $ "request without error with result: " <> res.response
-                                         --updateAppState (Equation {o1:o1,op:op,o2:o2,res:res.response}) eqerrs errs) 
                                          updateAppState (equation o1 op o2 res.response) eqerrs errs) 
                                      url
                          pure unit)
@@ -260,7 +248,6 @@ equationReactClass = createClass $ spec initialState \ctx -> do
       updateOperandTwo s = Equation $ equat { o2 = s, res = equat.o1 <> equat.op <> s }
       updateOperator   s = Equation $ equat { op = s , res = equat.o1 <> s <> equat.o2 }
       updateResult     s = Equation $ equat { res = s <> equat.o1 <> equat.op <> equat.o2 }
-      calc e = e.res -- e.o1 <> e.op <> e.o2
       
   pure $
     D.div [ P.className "container" ]
@@ -276,10 +263,8 @@ equationReactClass = createClass $ spec initialState \ctx -> do
                            , D.label [ P.className "col-sm-2 control-label" ]
                                  [D.text "result"]
                                , D.div [ P.className "col-sm-3" ] 
-                                       [D.text $ calc equat]
+                                       [D.text $ equat.res]
                              ]
-                           
-                           -- <> zipWith renderPhoneNumber person.phones (0 .. length person.phones)
                   ]
           ]
 
