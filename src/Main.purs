@@ -12,6 +12,8 @@ import Partial.Unsafe (unsafePartial)
 import Data.Maybe (maybe)
 import Data.Traversable (for)
 import Data.Bifunctor (lmap, rmap)
+import Data.Tuple (Tuple(..), fst,snd)
+import Data.Array ((:))
 
 import Data.Show -- (Show)
 import Control.Monad.Eff (Eff)
@@ -50,7 +52,12 @@ import React.DOM as D
 import React.DOM.Props as P
 import ReactDOM (render)
 
-data InputStatus = SuccessOnInput | WarningOnInput String | ErrorOnInput String
+data InputStatus = NoInput | SuccessOnInput | WarningOnInput String | ErrorOnInput String
+instance showInputSatus::Show InputStatus where
+  show NoInput            = "no input"
+  show (SuccessOnInput  ) = "success on input"
+  show (WarningOnInput s) = "Warning: " <> s
+  show (ErrorOnInput   s) = "Error: " <> s
 
 newtype  Equation =  Equation {
   o1  :: String,
@@ -64,58 +71,48 @@ instance showEquation::Show Equation where
 equation::String->String->String->String->Equation
 equation o1 op o2 res = Equation { o1:o1, op:op, o2:o2, res:res }
 
-maybeOp::String -> Maybe (Int->Int->Int)
-maybeOp "+" = Just (\o1 o2 -> o1 + o2)
-maybeOp "*" = Just (\o1 o2 -> o1 * o2)
-maybeOp   _ = Nothing
+newtype  EquationValidationStatus =  EquationValidationStatus {
+  o1  :: InputStatus,
+  op  :: InputStatus,
+  o2  :: InputStatus
+}
+instance showEquationValidationStatus::Show EquationValidationStatus where
+  show e@(EquationValidationStatus {o1:o1,op:op,o2:o2}) = 
+    show o1 <> "\n" <> show op <> "\n" <> show o2 <> "\n"
+equationValidationStatus::InputStatus->InputStatus->InputStatus->EquationValidationStatus
+equationValidationStatus o1 op o2 = EquationValidationStatus { o1:o1, op:op, o2:o2 }
 
-type Errors = Array String
-
-validateEquation :: Equation -> V Errors Equation
-validateEquation (Equation o) =
-  nonEmptyEquation (Equation o)
---  equation <$> (nonEmpty "first operand" o.o1 *> pure o.o1)
---           <*> (nonEmpty "operator"  o.op  *> pure o.op)
---           <*> (nonEmpty "second operand"  o.o2  *> pure o.o2)
---           <*> (nonEmpty "result"  o.res  *> pure o.res)
-
-nonEmptyEquation::Equation -> V Errors Equation
-nonEmptyEquation eq@(Equation {o1:o1,op:op,o2:o2,res:res}) = 
-  if length o1 /= 0 && length o2 /= 0 && length op == 0 then
-    invalid ["Operator cannot be empty"] *> pure eq
-  else 
-    -- pure eq 
-    equation <$> (matchesNumber "first operand" o1 *> pure o1)
-             <*> (pure op)
-             <*> (matchesNumber "second operand" o2 *> pure o2)
-             <*> (pure res)
+validateEquation :: Equation -> EquationValidationStatus
+validateEquation eq@(Equation {o1:o1,op:op,o2:o2,res:res}) = 
+    equationValidationStatus (matchesNumber "first operand" o1) (nonEmpty "operatoer" op) (matchesNumber "second operand" o2)
     
-nonEmpty :: String -> String -> V Errors Unit
-nonEmpty field "" = invalid ["Field '" <> field <> "' cannot be empty"]
-nonEmpty _     _  = pure unit
+    
+nonEmpty :: String -> String -> InputStatus
+nonEmpty field "" = ErrorOnInput $ "Field '" <> field <> "' cannot be empty"
+nonEmpty _     _  = SuccessOnInput
 
-lengthIs :: String -> Int -> String -> V Errors Unit
-lengthIs field len value | length value /= len = invalid ["Field '" <> field <> "' must have length " <> show len]
-lengthIs _     _   _     = pure unit
+matches :: String -> Either String Regex -> String -> InputStatus
+matches _  (Right regex) value | test regex value = SuccessOnInput
+matches field (Right _)  _     = ErrorOnInput $ "Field '" <> field <> "' did not match the required format"
+matches field (Left err) _     = WarningOnInput $ "Field '" <> field <> "' error in format definition:" <> err
+-- matches field _     _     = Just $ "Field '" <> field <> "' did not match the required format"
 
-matches :: String -> Either String Regex -> String -> V Errors Unit
-matches _  (Right regex) value | test regex value = pure unit
-matches field (Right _)  _     = invalid ["Field '" <> field <> "' did not match the required format"]
-matches field (Left err) _     = invalid ["Field '" <> field <> "' error in format definition:" <> err]
-matches field _     _     = invalid ["Field '" <> field <> "' did not match the required format"]
-
-matchesNumber::String -> String -> V Errors Unit
+matchesNumber::String -> String -> InputStatus 
 matchesNumber field value = 
   matches field (regex """\d+""" noFlags) value
 
+type Errors = Array String
+
 newtype AppState = AppState
   { equation :: Equation
-  , errors :: Errors
+  , equationValidationStatus :: EquationValidationStatus
+  , errors::Errors
   }
 
 initialState :: AppState
 initialState = AppState
   { equation: equation "" "" "" ""
+  , equationValidationStatus: equationValidationStatus NoInput NoInput NoInput
   , errors: []
   }
 
@@ -168,49 +165,54 @@ updateAppStateV
          | eff
          ) Unit
 updateAppStateV ctx updateField e = void do
-  AppState {equation:oldEquation, errors} <- readState ctx
+  AppState {equation:oldEquation, equationValidationStatus:equationValidationStatus, errors} <- readState ctx
   let vEvent::(V Errors String)
       vEvent= mapForignEventV (valueOf e)
   let vUpdatedEquationOrError::V Errors Equation
       vUpdatedEquationOrError = updateField <$> vEvent
   let updatedEquation::Equation
       updatedEquation = unV (\_->oldEquation) (\e->e) vUpdatedEquationOrError
-  let vValidatedEquationOrErrors::V Errors Equation
-      vValidatedEquationOrErrors = validateEquation updatedEquation
-  let failedUpdate (errs::Errors) = do  for errs log
-                                        writeState ctx (AppState { equation: updatedEquation, errors: errs })
-                                        pure unit
-  let successRequest (Equation eq) res = do 
-                                 let ne = eq {res=res}
-                                 writeState ctx (AppState { equation: Equation ne, errors: [] })
-                                 pure unit
-  let failedRequest (err::Error) =  do log $ show err
-                                       writeState ctx (AppState { equation: updatedEquation, errors: [message err] })
-                                       pure unit
-  let requestResult::Equation->Eff ( ajax::AJAX
+  let otherErrors::Errors
+      otherErrors = unV (\e->e) (\_->errors) vUpdatedEquationOrError
+  let newEquationValidationStatus::EquationValidationStatus
+      newEquationValidationStatus = validateEquation updatedEquation
+  let updateAppState (eq::Equation) (eqErrs::EquationValidationStatus) (errs::Errors) = do  
+        writeState ctx (AppState { equation: eq, equationValidationStatus:eqErrs, errors: errs })
+        pure unit
+  let requestResult::Equation->EquationValidationStatus->Errors->Eff ( ajax::AJAX
          , console :: CONSOLE
          , state :: ReactState ReadWrite
          | eff
          ) Unit
-      requestResult eq@(Equation {o1:o1,op:op,o2:o2}) = do 
-                  log $ show eq
+      requestResult eq@(Equation {o1:o1,op:op,o2:o2}) eqerrs errs= do 
+                  log "in requestResult"
+                  for errs log
                   unV
                      (\_ -> do 
-                         successRequest eq $ o1 <> op <> o2
+                         log "no valid input for request"
+                         updateAppState (Equation {o1:o1,op:op,o2:o2,res:o1 <> op <> o2}) eqerrs errs 
                          pure unit)
                      (\(url::URL) -> do 
+                         log "input valid for request"
                          -- first output the raw equation
-                         successRequest eq $ o1 <> op <> o2
+                         updateAppState (Equation {o1:o1,op:op,o2:o2,res:o1 <> op <> o2}) eqerrs errs
                          -- asyncronously comoute the result
-                         makeRequest failedRequest (\res -> successRequest eq res.response) url
+                         makeRequest (\error->do
+                                         log "request wirh error"
+                                         updateAppState (Equation {o1:o1,op:op,o2:o2,res:o1 <> op <> o2}) eqerrs (show error : otherErrors)) 
+                                     (\res ->do
+                                         log $ "request without error with result: " <> res.response
+                                         --updateAppState (Equation {o1:o1,op:op,o2:o2,res:res.response}) eqerrs errs) 
+                                         updateAppState (equation o1 op o2 res.response) eqerrs errs) 
+                                     url
                          pure unit)
                      (makeUrlV o1 op o2)
                   -- pure unit
-  unV failedUpdate requestResult vValidatedEquationOrErrors
+  requestResult updatedEquation newEquationValidationStatus otherErrors
   
 equationReactClass :: forall props. ReactClass props
 equationReactClass = createClass $ spec initialState \ctx -> do
-  AppState { equation: Equation equat, errors } <- readState ctx
+  AppState { equation: Equation equat, equationValidationStatus: EquationValidationStatus eqerrs, errors } <- readState ctx
 
   let renderValidationError err = D.li' [ D.text err ]
 
@@ -221,11 +223,13 @@ equationReactClass = createClass $ spec initialState \ctx -> do
         ]
         
       classesAtStatus::InputStatus->String
+      classesAtStatus NoInput = ""
       classesAtStatus SuccessOnInput = ""
       classesAtStatus (WarningOnInput _) = "has-warning"
       classesAtStatus (ErrorOnInput _) = "has-error"
       
       elementsAtStattus::InputStatus->Array ReactElement
+      elementsAtStattus NoInput = []
       elementsAtStattus SuccessOnInput = []
       elementsAtStattus (WarningOnInput s) = 
               [ 
@@ -266,9 +270,9 @@ equationReactClass = createClass $ spec initialState \ctx -> do
                   [ D.form [ P.className "form-horizontal" ] $
                            [ D.h3' [ D.text "Equation" ]
 
-                           , formField "operand 1" "operand 1" equat.o1 updateOperandOne SuccessOnInput
-                           , formField "operator" "operator" equat.op updateOperator $ ErrorOnInput "(error)"
-                           , formField "operand 2" "operand 2" equat.o2 updateOperandTwo $ WarningOnInput "(warning)"
+                           , formField "operand 1" "operand 1" equat.o1 updateOperandOne eqerrs.o1
+                           , formField "operator" "operator" equat.op updateOperator $ eqerrs.op
+                           , formField "operand 2" "operand 2" equat.o2 updateOperandTwo $ eqerrs.o2
                            , D.label [ P.className "col-sm-2 control-label" ]
                                  [D.text "result"]
                                , D.div [ P.className "col-sm-3" ] 
