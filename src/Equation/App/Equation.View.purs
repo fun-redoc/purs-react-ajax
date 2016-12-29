@@ -1,24 +1,24 @@
 module Equation.View where
 
-import Prelude (Unit, bind, map, pure, show, unit, void, ($), (<>), (>>>))
-import Equation (Equation(..))
-import Equation.Controller (AppState(..), EquationValidationStatus(..), Errors, InputStatus(..), initialState, updateAppStateC, updateOperandOne, updateOperandTwo, updateOperator)
-import Data.Validation.Semigroup (V, unV, invalid)
-import Data.Either (Either(Right, Left))
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Exception (EXCEPTION, error, message)
-import Control.Monad.Eff.Class (liftEff)
-import Control.Monad.Aff (launchAff)
-import Network.HTTP.Affjax (AJAX)
-import Control.Monad.Except (runExcept)
-import Data.Array (concat, (:)) as Arr
-import Data.List.Types (toList)
-import Data.Foldable (foldl)
-import Data.Foreign (F, MultipleErrors, readString, toForeign)
-import Data.Foreign.Index (prop)
-import React (Event, ReactClass, ReactElement, ReactState, ReactThis, Read, Write, createClass, readState, spec, writeState)
 import React.DOM as D
 import React.DOM.Props as P
+import Control.Monad.Aff (launchAff)
+import Control.Monad.Eff (Eff)
+import Control.Monad.Eff.Class (liftEff)
+import Control.Monad.Eff.Exception (EXCEPTION, error, message)
+import Control.Monad.Except (runExcept)
+import Data.Array (concat, (:)) as Arr
+import Data.Either (either)
+import Data.Foldable (foldl)
+import Data.Foreign (F, readString, toForeign)
+import Data.Foreign.Index (prop)
+import Data.List.Types (toList)
+import Data.Validation.Semigroup (V, unV, invalid)
+import Equation (Equation(..))
+import Equation.Controller (AppState(..), EquationValidationStatus(..), Errors, InputStatus(..), initialState, updateAppStateC, updateOperandOne, updateOperandTwo, updateOperator)
+import Network.HTTP.Affjax (AJAX)
+import Prelude (Unit, bind, map, pure, show, unit, void, ($), (<>), (>>>), (<<<))
+import React (Event, ReactClass, ReactElement, ReactState, ReactThis, Read, Write, createClass, readState, spec, writeState)
 
 valueOf :: Event -> F String
 valueOf e = do
@@ -28,13 +28,7 @@ valueOf e = do
 
 mapForignEventV::F String -> V Errors String
 mapForignEventV fe =
-  let eitherEventValueForign::Either MultipleErrors String
-      eitherEventValueForign = runExcept fe
-      eitherEventValue::V Errors String
-      eitherEventValue = case eitherEventValueForign of
-         Left ls -> invalid $ (toList >>> (foldl (\a v->(error $ show v) Arr.: a) [])) ls
-         Right s -> pure s
-  in eitherEventValue
+  either (invalid <<< (toList >>> (foldl (\a v->(error $ show v) Arr.: a) []))) (pure) $ runExcept fe
 
 updateAppStateV:: forall t83 t89 t90.
         ReactThis t83 AppState
@@ -62,7 +56,7 @@ updateAppStateV ctx updateField event = void do
         pure unit
   let newAppState inChar = do
         launchAff do
-          res <- updateAppStateC updateField appState inChar
+          res <- updateAppStateC updateField inChar
           liftEff $ writeState ctx res
         pure unit
   unV showWithErrors newAppState vEvent
