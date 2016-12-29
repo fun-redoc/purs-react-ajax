@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "name": "purescript-book-chapter8",
   "version": "0.1.0",
@@ -11,3 +12,18 @@
     "react-dom": "^0.14.6"
   }
 }
+=======
+{
+  "name": "purescript-react-affjax",
+  "version": "0.1.0",
+  "description": "Experimenting with Purescrit Affjax and React",
+  "main": "",
+  "private": true,
+  "author": "Roland Stellmach",
+  "license": "Creative,Commons,Attribution-NonCommercial-ShareAlike,4.0,International,License",
+  "dependencies": {
+    "react": "^0.14.8",
+    "react-dom": "^0.14.6"
+  }
+}
+>>>>>>> version
