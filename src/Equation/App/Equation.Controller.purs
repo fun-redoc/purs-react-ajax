@@ -1,57 +1,16 @@
 module Equation.Controller where
 
-import Prelude (class Show, Unit, bind, unit, void, pure, map, show,
-                (>>=), ($), (<>), (<$>), (>>>), (<<<), id, (*>))
-import Equation
-
--- import Data.String (length)
+import Prelude (class Show, bind, pure, show, ($), (<$>), (<<<), (<>), (>>=), (>>>))
+import Equation (Equation(..), equation)
 import Data.String.Regex (Regex, test, regex)
 import Data.String.Regex.Flags (noFlags)
 import Data.Int (fromString)
-import Data.Traversable (for)
-import Data.Validation.Semigroup (V, unV, invalid, isValid)
-import Data.Maybe (Maybe(Just, Nothing), maybe, fromJust)
-import Data.Either (Either(Right, Left), either)
-import Data.Array ((:))
-import Data.Bifunctor (bimap, lmap, rmap)
-
-import Control.Monad.State
-import Control.Monad.State.Class
-
-import Control.Monad.Eff (Eff, runPure)
-import Control.Monad.Eff.Console (CONSOLE, log)
+import Data.Validation.Semigroup (V, invalid, unV)
+import Data.Maybe (Maybe(Just), maybe)
+import Data.Either (Either(Right, Left))
 import Control.Monad.Eff.Exception (Error, error)
---import Control.Monad.Aff (Aff, Canceler, launchAff, runAff, attempt, later)
-import Control.Monad.Aff (Aff, Canceler, attempt, later)
-import Control.Monad.Aff.Class (liftAff)
-import Network.HTTP.Affjax (URL, AJAX, get)
-import Network.HTTP.StatusCode (StatusCode)
-import Network.HTTP.ResponseHeader (ResponseHeader)
-import Network.HTTP.Affjax.Response (class Respondable)
-
-import Control.Monad.Except (runExcept)
-import Data.Array (concat, (:)) as Arr
-import Data.List.Types (toList)
-import Data.Foldable (foldl)
-import Data.Foreign (F, MultipleErrors, readString, toForeign)
-import Data.Foreign.Index (prop)
-import Data.Nullable (toMaybe)
-import DOM (DOM())
-import DOM.HTML (window)
-import DOM.HTML.Types (htmlDocumentToDocument)
-import DOM.HTML.Window (document)
-import DOM.Node.NonElementParentNode (getElementById)
-import DOM.Node.Types (ElementId(..), documentToNonElementParentNode)
-import Partial.Unsafe (unsafePartial)
-import React (ReactElement, ReactClass, ReadWrite, ReactState, Event, ReactThis,
-              createFactory, readState, spec, createClass, writeState)
-import React.DOM as D
-import React.DOM.Props as P
-import ReactDOM (render)
-
-
-import Control.Monad.RWS as R
-import Data.Tuple as T
+import Control.Monad.Aff (Aff, attempt)
+import Network.HTTP.Affjax (AJAX, URL, get)
 
 data InputStatus = NoInput | SuccessOnInput | WarningOnInput String | ErrorOnInput String
 instance showInputSatus::Show InputStatus where
@@ -109,9 +68,13 @@ initialState = AppState
   }
 
 
+updateOperandOne :: Equation -> String -> Equation
 updateOperandOne (Equation equat) s = Equation $ equat { o1 = s, res = s <> equat.op <> equat.o2  }
+updateOperandTwo :: Equation -> String -> Equation
 updateOperandTwo (Equation equat) s = Equation $ equat { o2 = s, res = equat.o1 <> equat.op <> s }
+updateOperator :: Equation -> String -> Equation
 updateOperator   (Equation equat) s = Equation $ equat { op = s , res = equat.o1 <> s <> equat.o2 }
+updateResult :: Equation -> String -> Equation
 updateResult     (Equation equat) s = Equation $ equat { res = s }
 
 
@@ -127,18 +90,27 @@ makeUrlV o1 op o2 =
       maybeUrl::Maybe URL
       maybeUrl = maybeInt1 >>= (\i1 -> maybeInt2) >>= (\i2 -> Just $ "/calc/" <> o1 <> urlOp <> o2)
 
+updateAppStateC :: forall t119 t120 t156.
+  (t120 -> Equation)
+  -> t119
+     -> t120
+        -> Aff
+             ( ajax :: AJAX
+             | t156
+             )
+             AppState
 updateAppStateC updateFieldFn appState inChar = do
   let updatedEquation = updateFieldFn inChar
   let newEquationValidationStatus::EquationValidationStatus
       newEquationValidationStatus = validateEquation updatedEquation
-  let addRemote:: Equation -> Aff _ (V Errors (Maybe Int))
+  let addRemote::forall t1560. Equation -> Aff ( ajax :: AJAX | t1560 ) (V Errors (Maybe Int))
       addRemote (Equation {o1,op,o2,res}) = do
         let urlV::(V Errors String)
             urlV = makeUrlV o1 op o2
         let eitherToV::Either Error (Maybe Int) -> V Errors (Maybe Int)
             eitherToV (Left e) = invalid [e]
             eitherToV (Right r) = pure r
-        let request::String-> Aff _ (V Errors (Maybe Int))
+        let request::forall t15603. String-> Aff ( ajax :: AJAX | t15603 ) (V Errors (Maybe Int))
             request url = do responseE <- attempt $ (fromString <<< _.response) <$> (get url)
                              pure $ eitherToV responseE
         unV
