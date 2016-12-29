@@ -1,16 +1,17 @@
 module Equation.Controller where
 
-import Prelude (class Show, bind, pure, show, ($), (<$>), (<<<), (<>), (>>=), (>>>))
-import Equation (Equation(..), equation)
+import Control.Monad.Aff (Aff, attempt)
+import Control.Monad.Eff.Exception (Error, error)
+import Data.Either (Either(Right, Left))
+import Data.Int (fromString)
+import Data.Maybe (Maybe, maybe)
 import Data.String.Regex (Regex, test, regex)
 import Data.String.Regex.Flags (noFlags)
-import Data.Int (fromString)
+import Data.Tuple (Tuple(..))
 import Data.Validation.Semigroup (V, invalid, unV)
-import Data.Maybe (Maybe(Just), maybe)
-import Data.Either (Either(Right, Left))
-import Control.Monad.Eff.Exception (Error, error)
-import Control.Monad.Aff (Aff, attempt)
+import Equation (Equation(..), equation)
 import Network.HTTP.Affjax (AJAX, URL, get)
+import Prelude (class Show, bind, pure, show, ($), (<$>), (<*>), (<<<), (<>), (>>>))
 
 data InputStatus = NoInput | SuccessOnInput | WarningOnInput String | ErrorOnInput String
 instance showInputSatus::Show InputStatus where
@@ -77,18 +78,20 @@ updateOperator   (Equation equat) s = Equation $ equat { op = s , res = equat.o1
 updateResult :: Equation -> String -> Equation
 updateResult     (Equation equat) s = Equation $ equat { res = s }
 
+validateInt::String->String->V Errors Int
+validateInt fieldName val =
+  maybe
+    (invalid [error $ "'" <> fieldName <> "' must be integer, value '" <> val <> "' has wrong format." ])
+    (pure)
+    (fromString val)
 
-makeUrlV::String->String->String->V Errors URL
-makeUrlV o1 op o2 =
-  maybe (invalid [error $ o1 <> op <> o2]) (pure) maybeUrl
+validateAndMakeUrl::String->String->String->V Errors URL
+validateAndMakeUrl o1 op o2 =
+  (\a b -> url' (Tuple a b)) <$> (validateInt "Operand 1" o1) <*> (validateInt "Operand 2" o2)
   where
-      urlOp = "/add/"
-      maybeInt1::Maybe Int
-      maybeInt1 = fromString o1
-      maybeInt2::Maybe Int
-      maybeInt2 = fromString o2
-      maybeUrl::Maybe URL
-      maybeUrl = maybeInt1 >>= (\i1 -> maybeInt2) >>= (\i2 -> Just $ "/calc/" <> o1 <> urlOp <> o2)
+    urlOp = "/add/"
+    url' (Tuple o1' o2') = "/calc/" <> show o1' <> urlOp <> show o2'
+
 
 updateAppStateC :: forall t119 t120 t156.
   (t120 -> Equation)
@@ -106,7 +109,7 @@ updateAppStateC updateFieldFn appState inChar = do
   let addRemote::forall t1560. Equation -> Aff ( ajax :: AJAX | t1560 ) (V Errors (Maybe Int))
       addRemote (Equation {o1,op,o2,res}) = do
         let urlV::(V Errors String)
-            urlV = makeUrlV o1 op o2
+            urlV = validateAndMakeUrl o1 op o2
         let eitherToV::Either Error (Maybe Int) -> V Errors (Maybe Int)
             eitherToV (Left e) = invalid [e]
             eitherToV (Right r) = pure r
