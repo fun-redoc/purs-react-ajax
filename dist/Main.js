@@ -36425,9 +36425,6 @@ var ErrorOnInput = (function () {
 var EquationValidationStatus = function (x) {
     return x;
 };
-var AppState = function (x) {
-    return x;
-};
 var validateInt = function (fieldName) {
     return function (val) {
         return Data_Maybe.maybe(Data_Validation_Semigroup.invalid([ Control_Monad_Eff_Exception.error("'" + (fieldName + ("' must be integer, value '" + (val + "' has wrong format.")))) ]))(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray)))(Data_Int.fromString(val));
@@ -36450,59 +36447,59 @@ var validateAndMakeUrl = function (o1) {
 var updateResult = function (v) {
     return function (s) {
         return Equation.Equation((function () {
-            var $25 = {};
-            for (var $26 in v) {
-                if (v.hasOwnProperty($26)) {
-                    $25[$26] = v[$26];
+            var $21 = {};
+            for (var $22 in v) {
+                if (v.hasOwnProperty($22)) {
+                    $21[$22] = v[$22];
                 };
             };
-            $25.res = s;
-            return $25;
+            $21.res = s;
+            return $21;
         })());
     };
 };
 var updateOperator = function (v) {
     return function (s) {
         return Equation.Equation((function () {
-            var $30 = {};
-            for (var $31 in v) {
-                if (v.hasOwnProperty($31)) {
-                    $30[$31] = v[$31];
+            var $26 = {};
+            for (var $27 in v) {
+                if (v.hasOwnProperty($27)) {
+                    $26[$27] = v[$27];
                 };
             };
-            $30.op = s;
-            $30.res = v.o1 + (s + v.o2);
-            return $30;
+            $26.op = s;
+            $26.res = v.o1 + (s + v.o2);
+            return $26;
         })());
     };
 };
 var updateOperandTwo = function (v) {
     return function (s) {
         return Equation.Equation((function () {
-            var $35 = {};
-            for (var $36 in v) {
-                if (v.hasOwnProperty($36)) {
-                    $35[$36] = v[$36];
+            var $31 = {};
+            for (var $32 in v) {
+                if (v.hasOwnProperty($32)) {
+                    $31[$32] = v[$32];
                 };
             };
-            $35.o2 = s;
-            $35.res = v.o1 + (v.op + s);
-            return $35;
+            $31.o2 = s;
+            $31.res = v.o1 + (v.op + s);
+            return $31;
         })());
     };
 };
 var updateOperandOne = function (v) {
     return function (s) {
         return Equation.Equation((function () {
-            var $40 = {};
-            for (var $41 in v) {
-                if (v.hasOwnProperty($41)) {
-                    $40[$41] = v[$41];
+            var $36 = {};
+            for (var $37 in v) {
+                if (v.hasOwnProperty($37)) {
+                    $36[$37] = v[$37];
                 };
             };
-            $40.o1 = s;
-            $40.res = s + (v.op + v.o2);
-            return $40;
+            $36.o1 = s;
+            $36.res = s + (v.op + v.o2);
+            return $36;
         })());
     };
 };
@@ -36553,17 +36550,6 @@ var matchesNumber = function (field) {
         return matches(field)(Data_String_Regex.regex("\\d+")(Data_String_Regex_Flags.noFlags))(value);
     };
 };
-var makeAppState = function (v) {
-    return function (v1) {
-        return function (v2) {
-            return {
-                equation: v, 
-                equationValidationStatus: v1, 
-                errors: v2
-            };
-        };
-    };
-};
 var equationValidationStatus = function (o1) {
     return function (op) {
         return function (o2) {
@@ -36575,11 +36561,6 @@ var equationValidationStatus = function (o1) {
         };
     };
 };
-var initialState = {
-    equation: Equation.equation("")("")("")(""), 
-    equationValidationStatus: equationValidationStatus(NoInput.value)(NoInput.value)(NoInput.value), 
-    errors: [  ]
-};
 var validateEquation = function (v) {
     return equationValidationStatus(matchesNumber("first operand")(v.o1))(nonEmpty("operatoer")(v.op))(matchesNumber("second operand")(v.o2));
 };
@@ -36588,33 +36569,19 @@ var eitherToV = Data_Either.either(function (e) {
 })(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray)));
 var addRemote = function (v) {
     var request = function (url) {
-        return Control_Bind.bind(Control_Monad_Aff.bindAff)(Control_Monad_Aff.attempt(Data_Functor.map(Control_Monad_Aff.functorAff)(function ($73) {
+        return Control_Bind.bind(Control_Monad_Aff.bindAff)(Control_Monad_Aff.attempt(Data_Functor.map(Control_Monad_Aff.functorAff)(function ($65) {
             return Data_Int.fromString((function (v1) {
                 return v1.response;
-            })($73));
+            })($65));
         })(Network_HTTP_Affjax.get(Network_HTTP_Affjax_Response.responsableString)(url))))(function (v1) {
             return Control_Applicative.pure(Control_Monad_Aff.applicativeAff)(eitherToV(v1));
         });
     };
-    return Data_Validation_Semigroup.unV(function ($74) {
-        return Control_Applicative.pure(Control_Monad_Aff.applicativeAff)(Data_Validation_Semigroup.invalid($74));
+    return Data_Validation_Semigroup.unV(function ($66) {
+        return Control_Applicative.pure(Control_Monad_Aff.applicativeAff)(Data_Validation_Semigroup.invalid($66));
     })(request)(validateAndMakeUrl(v.o1)(v.op)(v.o2));
 };
-var updateAppStateC = function (updateFieldFn) {
-    return function (inChar) {
-        var updatedEquation = updateFieldFn(inChar);
-        var newEquationValidationStatus = validateEquation(updatedEquation);
-        return Control_Bind.bind(Control_Monad_Aff.bindAff)(addRemote(updatedEquation))(function (v) {
-            return Control_Applicative.pure(Control_Monad_Aff.applicativeAff)(Data_Validation_Semigroup.unV(makeAppState(updatedEquation)(newEquationValidationStatus))(function (maybeInt) {
-                return makeAppState(Data_Maybe.maybe(updatedEquation)(function ($75) {
-                    return updateResult(updatedEquation)(Data_Show.show(Data_Show.showInt)($75));
-                })(maybeInt))(newEquationValidationStatus)([  ]);
-            })(v));
-        });
-    };
-};
 module.exports = {
-    AppState: AppState, 
     EquationValidationStatus: EquationValidationStatus, 
     NoInput: NoInput, 
     SuccessOnInput: SuccessOnInput, 
@@ -36623,12 +36590,9 @@ module.exports = {
     addRemote: addRemote, 
     eitherToV: eitherToV, 
     equationValidationStatus: equationValidationStatus, 
-    initialState: initialState, 
-    makeAppState: makeAppState, 
     matches: matches, 
     matchesNumber: matchesNumber, 
     nonEmpty: nonEmpty, 
-    updateAppStateC: updateAppStateC, 
     updateOperandOne: updateOperandOne, 
     updateOperandTwo: updateOperandTwo, 
     updateOperator: updateOperator, 
@@ -36652,6 +36616,7 @@ var Control_Monad_Eff_Exception = require("../Control.Monad.Eff.Exception");
 var Control_Monad_Except = require("../Control.Monad.Except");
 var Data_Array = require("../Data.Array");
 var Data_Either = require("../Data.Either");
+var Data_Maybe = require("../Data.Maybe");
 var Data_Foldable = require("../Data.Foldable");
 var Data_Foreign = require("../Data.Foreign");
 var Data_Foreign_Index = require("../Data.Foreign.Index");
@@ -36672,6 +36637,9 @@ var Control_Applicative = require("../Control.Applicative");
 var Data_Semigroup = require("../Data.Semigroup");
 var Data_Functor = require("../Data.Functor");
 var Data_Unit = require("../Data.Unit");
+var AppState = function (x) {
+    return x;
+};
 var valueOf = function (e) {
     return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Data_Identity.monadIdentity))(Data_Foreign_Index.prop("target")(Data_Foreign.toForeign(e)))(function (v) {
         return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Data_Identity.monadIdentity))(Data_Foreign_Index.prop("value")(v))(function (v1) {
@@ -36680,13 +36648,37 @@ var valueOf = function (e) {
     });
 };
 var mapForignEventV = function (fe) {
-    return Data_Either.either(function ($26) {
+    return Data_Either.either(function ($34) {
         return Data_Validation_Semigroup.invalid(Data_Foldable.foldl(Data_List_Types.foldableList)(function (a) {
             return function (v) {
                 return Data_Array.cons(Control_Monad_Eff_Exception.error(Data_Show.show(Data_Foreign.showForeignError)(v)))(a);
             };
-        })([  ])(Data_List_Types.toList($26)));
+        })([  ])(Data_List_Types.toList($34)));
     })(Control_Applicative.pure(Data_Validation_Semigroup.applicativeV(Data_Semigroup.semigroupArray)))(Control_Monad_Except.runExcept(fe));
+};
+var makeAppState = function (v) {
+    return function (v1) {
+        return function (v2) {
+            return {
+                equation: v, 
+                equationValidationStatus: v1, 
+                errors: v2
+            };
+        };
+    };
+};
+var updateAppStateC = function (updateFieldFn) {
+    return function (inChar) {
+        var updatedEquation = updateFieldFn(inChar);
+        var newEquationValidationStatus = Equation_Controller.validateEquation(updatedEquation);
+        return Control_Bind.bind(Control_Monad_Aff.bindAff)(Equation_Controller.addRemote(updatedEquation))(function (v) {
+            return Control_Applicative.pure(Control_Monad_Aff.applicativeAff)(Data_Validation_Semigroup.unV(makeAppState(updatedEquation)(newEquationValidationStatus))(function (maybeInt) {
+                return makeAppState(Data_Maybe.maybe(updatedEquation)(function ($35) {
+                    return Equation_Controller.updateResult(updatedEquation)(Data_Show.show(Data_Show.showInt)($35));
+                })(maybeInt))(newEquationValidationStatus)([  ]);
+            })(v));
+        });
+    };
 };
 var updateAppStateV = function (ctx) {
     return function (updateField) {
@@ -36706,7 +36698,7 @@ var updateAppStateV = function (ctx) {
                 };
                 var newAppState = function (inChar) {
                     return function __do() {
-                        Control_Monad_Aff.launchAff(Control_Bind.bind(Control_Monad_Aff.bindAff)(Equation_Controller.updateAppStateC(updateField)(inChar))(function (v1) {
+                        Control_Monad_Aff.launchAff(Control_Bind.bind(Control_Monad_Aff.bindAff)(updateAppStateC(updateField)(inChar))(function (v1) {
                             return Control_Monad_Eff_Class.liftEff(Control_Monad_Aff.monadEffAff)(React.writeState(ctx)(v1));
                         }))();
                         return Data_Unit.unit;
@@ -36717,7 +36709,12 @@ var updateAppStateV = function (ctx) {
         };
     };
 };
-var equationReactClass = React.createClass(React.spec(Equation_Controller.initialState)(function (ctx) {
+var initialState = {
+    equation: Equation.equation("")("")("")(""), 
+    equationValidationStatus: Equation_Controller.equationValidationStatus(Equation_Controller.NoInput.value)(Equation_Controller.NoInput.value)(Equation_Controller.NoInput.value), 
+    errors: [  ]
+};
+var equationReactClass = React.createClass(React.spec(initialState)(function (ctx) {
     return function __do() {
         var v = React.readState(ctx)();
         var renderValidationError = function (err) {
@@ -36742,7 +36739,7 @@ var equationReactClass = React.createClass(React.spec(Equation_Controller.initia
             if (v1 instanceof Equation_Controller.ErrorOnInput) {
                 return [ React_DOM.span([ React_DOM_Props.className("help-block") ])([ React_DOM.text(v1.value0) ]) ];
             };
-            throw new Error("Failed pattern match at Equation.View line 84, column 7 - line 84, column 37: " + [ v1.constructor.name ]);
+            throw new Error("Failed pattern match at Equation.View line 123, column 7 - line 123, column 37: " + [ v1.constructor.name ]);
         };
         var classesAtStatus = function (v1) {
             if (v1 instanceof Equation_Controller.NoInput) {
@@ -36757,7 +36754,7 @@ var equationReactClass = React.createClass(React.spec(Equation_Controller.initia
             if (v1 instanceof Equation_Controller.ErrorOnInput) {
                 return "has-error";
             };
-            throw new Error("Failed pattern match at Equation.View line 77, column 7 - line 78, column 7: " + [ v1.constructor.name ]);
+            throw new Error("Failed pattern match at Equation.View line 116, column 7 - line 117, column 7: " + [ v1.constructor.name ]);
         };
         var formField = function (name) {
             return function (hint) {
@@ -36774,13 +36771,17 @@ var equationReactClass = React.createClass(React.spec(Equation_Controller.initia
     };
 }));
 module.exports = {
+    AppState: AppState, 
     equationReactClass: equationReactClass, 
+    initialState: initialState, 
+    makeAppState: makeAppState, 
     mapForignEventV: mapForignEventV, 
+    updateAppStateC: updateAppStateC, 
     updateAppStateV: updateAppStateV, 
     valueOf: valueOf
 };
 
-},{"../Control.Applicative":161,"../Control.Bind":167,"../Control.Monad.Aff":176,"../Control.Monad.Eff":189,"../Control.Monad.Eff.Class":179,"../Control.Monad.Eff.Exception":183,"../Control.Monad.Except":192,"../Control.Monad.Except.Trans":191,"../Control.Semigroupoid":209,"../Data.Array":228,"../Data.Either":238,"../Data.Foldable":245,"../Data.Foreign":255,"../Data.Foreign.Index":248,"../Data.Function":261,"../Data.Functor":265,"../Data.Identity":271,"../Data.List.Types":277,"../Data.Semigroup":304,"../Data.Show":308,"../Data.Unit":326,"../Data.Validation.Semigroup":327,"../Equation":331,"../Equation.Controller":329,"../Network.HTTP.Affjax":340,"../Prelude":348,"../React":355,"../React.DOM":351,"../React.DOM.Props":350}],331:[function(require,module,exports){
+},{"../Control.Applicative":161,"../Control.Bind":167,"../Control.Monad.Aff":176,"../Control.Monad.Eff":189,"../Control.Monad.Eff.Class":179,"../Control.Monad.Eff.Exception":183,"../Control.Monad.Except":192,"../Control.Monad.Except.Trans":191,"../Control.Semigroupoid":209,"../Data.Array":228,"../Data.Either":238,"../Data.Foldable":245,"../Data.Foreign":255,"../Data.Foreign.Index":248,"../Data.Function":261,"../Data.Functor":265,"../Data.Identity":271,"../Data.List.Types":277,"../Data.Maybe":281,"../Data.Semigroup":304,"../Data.Show":308,"../Data.Unit":326,"../Data.Validation.Semigroup":327,"../Equation":331,"../Equation.Controller":329,"../Network.HTTP.Affjax":340,"../Prelude":348,"../React":355,"../React.DOM":351,"../React.DOM.Props":350}],331:[function(require,module,exports){
 // Generated by psc version 0.10.3
 "use strict";
 var Prelude = require("../Prelude");

@@ -9,7 +9,7 @@ import Data.String.Regex (Regex, test, regex)
 import Data.String.Regex.Flags (noFlags)
 import Data.Tuple (Tuple(..))
 import Data.Validation.Semigroup (V, invalid, unV)
-import Equation (Equation(..), equation)
+import Equation (Equation(Equation))
 import Network.HTTP.Affjax (AJAX, URL, get)
 import Prelude (class Show, bind, pure, show, ($), (<$>), (<*>), (<<<), (<>), (>>>))
 
@@ -84,41 +84,3 @@ updateOperator :: Equation -> String -> Equation
 updateOperator   (Equation equat) s = Equation $ equat { op = s , res = equat.o1 <> s <> equat.o2 }
 updateResult :: Equation -> String -> Equation
 updateResult     (Equation equat) s = Equation $ equat { res = s }
-
-newtype AppState = AppState
-  { equation :: Equation
-  , equationValidationStatus :: EquationValidationStatus
-  , errors::Errors
-  }
-makeAppState::Equation->EquationValidationStatus->Errors->AppState
-makeAppState (eq::Equation) (eqErrs::EquationValidationStatus) (errs::Errors) =
-  AppState { equation: eq, equationValidationStatus:eqErrs, errors: errs }
-
-initialState :: AppState
-initialState = AppState
-  { equation: equation "" "" "" ""
-  , equationValidationStatus: equationValidationStatus NoInput NoInput NoInput
-  , errors: []
-  }
-
-updateAppStateC :: forall t120 t156.
-  (t120 -> Equation)
-     -> t120
-        -> Aff
-             ( ajax :: AJAX
-             | t156
-             )
-             AppState
-updateAppStateC updateFieldFn inChar = do
-  let updatedEquation = updateFieldFn inChar
-  let newEquationValidationStatus::EquationValidationStatus
-      newEquationValidationStatus = validateEquation updatedEquation
-  res <- addRemote updatedEquation
-  pure $
-    unV
-      (makeAppState updatedEquation newEquationValidationStatus)
-      (\maybeInt -> makeAppState
-                      (maybe updatedEquation (show >>> updateResult updatedEquation) maybeInt)
-                      newEquationValidationStatus
-                      [])
-      (res)

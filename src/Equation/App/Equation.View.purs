@@ -2,20 +2,21 @@ module Equation.View where
 
 import React.DOM as D
 import React.DOM.Props as P
-import Control.Monad.Aff (launchAff)
+import Control.Monad.Aff (Aff,launchAff)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (EXCEPTION, error, message)
 import Control.Monad.Except (runExcept)
 import Data.Array (concat, (:)) as Arr
 import Data.Either (either)
+import Data.Maybe (maybe)
 import Data.Foldable (foldl)
 import Data.Foreign (F, readString, toForeign)
 import Data.Foreign.Index (prop)
 import Data.List.Types (toList)
 import Data.Validation.Semigroup (V, unV, invalid)
-import Equation (Equation(..))
-import Equation.Controller (AppState(..), EquationValidationStatus(..), Errors, InputStatus(..), initialState, updateAppStateC, updateOperandOne, updateOperandTwo, updateOperator)
+import Equation (Equation(..), equation)
+import Equation.Controller (updateResult, addRemote, EquationValidationStatus(..), validateEquation, equationValidationStatus, Errors, InputStatus(..), updateOperandOne, updateOperandTwo, updateOperator)
 import Network.HTTP.Affjax (AJAX)
 import Prelude (Unit, bind, map, pure, show, unit, void, ($), (<>), (>>>), (<<<))
 import React (Event, ReactClass, ReactElement, ReactState, ReactThis, Read, Write, createClass, readState, spec, writeState)
@@ -29,6 +30,44 @@ valueOf e = do
 mapForignEventV::F String -> V Errors String
 mapForignEventV fe =
   either (invalid <<< (toList >>> (foldl (\a v->(error $ show v) Arr.: a) []))) (pure) $ runExcept fe
+
+newtype AppState = AppState
+  { equation :: Equation
+  , equationValidationStatus :: EquationValidationStatus
+  , errors::Errors
+  }
+makeAppState::Equation->EquationValidationStatus->Errors->AppState
+makeAppState (eq::Equation) (eqErrs::EquationValidationStatus) (errs::Errors) =
+  AppState { equation: eq, equationValidationStatus:eqErrs, errors: errs }
+
+initialState :: AppState
+initialState = AppState
+  { equation: equation "" "" "" ""
+  , equationValidationStatus: equationValidationStatus NoInput NoInput NoInput
+  , errors: []
+  }
+
+updateAppStateC :: forall t120 t156.
+  (t120 -> Equation)
+     -> t120
+        -> Aff
+             ( ajax :: AJAX
+             | t156
+             )
+             AppState
+updateAppStateC updateFieldFn inChar = do
+  let updatedEquation = updateFieldFn inChar
+  let newEquationValidationStatus::EquationValidationStatus
+      newEquationValidationStatus = validateEquation updatedEquation
+  res <- addRemote updatedEquation
+  pure $
+    unV
+      (makeAppState updatedEquation newEquationValidationStatus)
+      (\maybeInt -> makeAppState
+                      (maybe updatedEquation (show >>> updateResult updatedEquation) maybeInt)
+                      newEquationValidationStatus
+                      [])
+      (res)
 
 updateAppStateV:: forall t83 t89 t90.
         ReactThis t83 AppState
